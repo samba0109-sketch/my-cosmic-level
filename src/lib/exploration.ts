@@ -41,23 +41,17 @@ export async function extractPhotoMeta(file: File): Promise<PhotoRecord> {
 
     // Full parse for date + fallback GPS fields
     const data = await exifr
-      .parse(file, {
-        gps: true,
-        tiff: true,
-        exif: true,
-        ifd0: true,
-        pick: [
-          "latitude",
-          "longitude",
-          "GPSLatitude",
-          "GPSLongitude",
-          "GPSLatitudeRef",
-          "GPSLongitudeRef",
-          "DateTimeOriginal",
-          "CreateDate",
-          "ModifyDate",
-        ],
-      })
+      .parse(file, [
+        "latitude",
+        "longitude",
+        "GPSLatitude",
+        "GPSLongitude",
+        "GPSLatitudeRef",
+        "GPSLongitudeRef",
+        "DateTimeOriginal",
+        "CreateDate",
+        "ModifyDate",
+      ])
       .catch(() => null);
 
     if (data) {
