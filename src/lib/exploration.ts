@@ -32,15 +32,56 @@ export async function extractPhotoMeta(file: File): Promise<PhotoRecord> {
   let takenAt: number | undefined;
 
   try {
-    const data = await exifr.parse(file, { gps: true, tiff: true, exif: true });
+    // Dedicated GPS parse — most reliable across formats
+    const gps = await exifr.gps(file).catch(() => null);
+    if (gps && typeof gps.latitude === "number" && typeof gps.longitude === "number") {
+      lat = gps.latitude;
+      lon = gps.longitude;
+    }
+
+    // Full parse for date + fallback GPS fields
+    const data = await exifr
+      .parse(file, [
+        "latitude",
+        "longitude",
+        "GPSLatitude",
+        "GPSLongitude",
+        "GPSLatitudeRef",
+        "GPSLongitudeRef",
+        "DateTimeOriginal",
+        "CreateDate",
+        "ModifyDate",
+      ])
+      .catch(() => null);
+
     if (data) {
-      if (typeof data.latitude === "number") lat = data.latitude;
-      if (typeof data.longitude === "number") lon = data.longitude;
+      if (lat == null && typeof data.latitude === "number") lat = data.latitude;
+      if (lon == null && typeof data.longitude === "number") lon = data.longitude;
+
+      // Manual conversion if only raw DMS arrays are present
+      if ((lat == null || lon == null) && Array.isArray(data.GPSLatitude) && Array.isArray(data.GPSLongitude)) {
+        const toDec = (dms: number[], ref?: string) => {
+          const [d = 0, m = 0, s = 0] = dms;
+          const sign = ref === "S" || ref === "W" ? -1 : 1;
+          return sign * (d + m / 60 + s / 3600);
+        };
+        lat = toDec(data.GPSLatitude, data.GPSLatitudeRef);
+        lon = toDec(data.GPSLongitude, data.GPSLongitudeRef);
+      }
+
       const dt = data.DateTimeOriginal || data.CreateDate || data.ModifyDate;
       if (dt instanceof Date) takenAt = dt.getTime();
     }
-  } catch {
-    /* ignore */
+
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.log("[EXIF]", file.name, { lat, lon, hasGps: !!gps, raw: data });
+    }
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.warn("[EXIF] parse failed", file.name, err);
+    }
   }
 
   const rec: PhotoRecord = { id, url, fileName: file.name, lat, lon, takenAt };
