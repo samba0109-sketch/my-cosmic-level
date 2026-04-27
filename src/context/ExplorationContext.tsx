@@ -1,20 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import { computeStats, extractPhotoMeta, type ExplorationStats, type PhotoRecord } from "@/lib/exploration";
-
-interface Ctx {
-  photos: PhotoRecord[];
-  pending: PhotoRecord[];
-  stats: ExplorationStats;
-  addFiles: (files: FileList | File[]) => Promise<PhotoRecord[]>;
-  stageFiles: (files: FileList | File[]) => Promise<PhotoRecord[]>;
-  commitPending: () => PhotoRecord[];
-  removePending: (id: string) => void;
-  clearPending: () => void;
-  removePhoto: (id: string) => void;
-  clear: () => void;
-}
-
-const ExplorationCtx = createContext<Ctx | null>(null);
+import { useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { computeStats, extractPhotoMeta, type PhotoRecord } from "@/lib/exploration";
+import { ExplorationCtx } from "./exploration-context";
 
 export const ExplorationProvider = ({ children }: { children: ReactNode }) => {
   const [photos, setPhotos] = useState<PhotoRecord[]>([]);
