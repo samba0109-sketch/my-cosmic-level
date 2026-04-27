@@ -1,32 +1,27 @@
 import { useState } from "react";
-import TossHeader from "@/components/TossHeader";
-import HomeScreen from "@/components/screens/HomeScreen";
-import UploadScreen from "@/components/screens/UploadScreen";
-import AnalyzingScreen from "@/components/screens/AnalyzingScreen";
-import ResultScreen from "@/components/screens/ResultScreen";
-
-type Step = "home" | "upload" | "analyzing" | "result";
+import AppHeader from "@/components/AppHeader";
+import BottomNav, { type TabKey } from "@/components/BottomNav";
+import DashboardScreen from "@/components/screens/DashboardScreen";
+import RecordsScreen from "@/components/screens/RecordsScreen";
+import CheckinScreen from "@/components/screens/CheckinScreen";
+import PlanetScreen from "@/components/screens/PlanetScreen";
+import CrewScreen from "@/components/screens/CrewScreen";
 
 const Index = () => {
-  const [step, setStep] = useState<Step>("home");
-
-  const back = () => {
-    if (step === "upload") setStep("home");
-    else if (step === "result") setStep("home");
-    else setStep("home");
-  };
+  const [tab, setTab] = useState<TabKey>("dashboard");
 
   return (
-    <main className="min-h-dvh bg-muted/40">
+    <main className="min-h-dvh bg-surface-2">
       <div className="toss-frame shadow-card">
-        <TossHeader
-          onBack={back}
-          showShare={step === "result" || step === "home"}
-        />
-        {step === "home" && <HomeScreen onStart={() => setStep("upload")} />}
-        {step === "upload" && <UploadScreen onSubmit={() => setStep("analyzing")} />}
-        {step === "analyzing" && <AnalyzingScreen onDone={() => setStep("result")} />}
-        {step === "result" && <ResultScreen onRestart={() => setStep("home")} />}
+        <AppHeader subtitle="Planet Exploration" />
+        {tab === "dashboard" && (
+          <DashboardScreen onStart={() => setTab("checkin")} onOpenRecords={() => setTab("records")} />
+        )}
+        {tab === "records" && <RecordsScreen />}
+        {tab === "checkin" && <CheckinScreen />}
+        {tab === "planet" && <PlanetScreen onAddRecord={() => setTab("checkin")} />}
+        {tab === "crew" && <CrewScreen />}
+        <BottomNav active={tab} onChange={setTab} />
       </div>
     </main>
   );
