@@ -7,21 +7,33 @@ import CheckinScreen from "@/components/screens/CheckinScreen";
 import PlanetScreen from "@/components/screens/PlanetScreen";
 import CrewScreen from "@/components/screens/CrewScreen";
 
+const SUBTITLES: Record<TabKey, string> = {
+  dashboard: "EARTH 01",
+  records: "LOG ARCHIVE",
+  checkin: "MISSION SYNC",
+  planet: "PLANET VIEW",
+  crew: "FLEET",
+};
+
 const Index = () => {
   const [tab, setTab] = useState<TabKey>("dashboard");
 
   return (
-    <main className="min-h-dvh bg-surface-2">
+    <main className="min-h-dvh bg-background">
       <div className="toss-frame shadow-card">
-        <AppHeader subtitle="Planet Exploration" />
-        {tab === "dashboard" && (
-          <DashboardScreen onStart={() => setTab("checkin")} onOpenRecords={() => setTab("records")} />
-        )}
-        {tab === "records" && <RecordsScreen />}
-        {tab === "checkin" && <CheckinScreen />}
-        {tab === "planet" && <PlanetScreen onAddRecord={() => setTab("checkin")} />}
-        {tab === "crew" && <CrewScreen />}
-        <BottomNav active={tab} onChange={setTab} />
+        {/* Ambient stars layer */}
+        <div className="pointer-events-none absolute inset-0 stars opacity-60" aria-hidden />
+        <div className="relative">
+          <AppHeader subtitle={SUBTITLES[tab]} />
+          {tab === "dashboard" && (
+            <DashboardScreen onStart={() => setTab("checkin")} onOpenRecords={() => setTab("records")} />
+          )}
+          {tab === "records" && <RecordsScreen />}
+          {tab === "checkin" && <CheckinScreen />}
+          {tab === "planet" && <PlanetScreen onAddRecord={() => setTab("checkin")} />}
+          {tab === "crew" && <CrewScreen />}
+          <BottomNav active={tab} onChange={setTab} />
+        </div>
       </div>
     </main>
   );
