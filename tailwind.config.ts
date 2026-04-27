@@ -47,16 +47,10 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        cosmic: {
-          DEFAULT: "hsl(var(--cosmic))",
-          foreground: "hsl(var(--cosmic-foreground))",
-          soft: "hsl(var(--cosmic-soft))",
-        },
-        earth: {
-          DEFAULT: "hsl(var(--earth))",
-          foreground: "hsl(var(--earth-foreground))",
-        },
         "primary-soft": "hsl(var(--primary-soft))",
+        "surface-1": "hsl(var(--surface-1))",
+        "surface-2": "hsl(var(--surface-2))",
+        "surface-3": "hsl(var(--surface-3))",
       },
       borderRadius: {
         lg: "var(--radius)",
