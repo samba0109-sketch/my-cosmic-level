@@ -1,24 +1,37 @@
 import { useRef, useState } from "react";
 import { FilePlus2, MapPin, Plane, X } from "lucide-react";
+import { toast } from "sonner";
 import { useExploration } from "@/context/ExplorationContext";
 
 const CheckinScreen = () => {
-  const { photos, addFiles, removePhoto, stats } = useExploration();
+  const { pending, stageFiles, removePending, commitPending, stats } = useExploration();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
-  const handle = async (files: FileList | null) => {
+  const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     setBusy(true);
     try {
-      await addFiles(files);
+      await stageFiles(files);
     } finally {
       setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
     }
   };
 
-  const recent = [...photos].slice(-3).reverse();
-  const last = photos[photos.length - 1];
+  const handleLaunch = () => {
+    if (pending.length === 0) {
+      toast("탐사 기록을 위한 사진을 등록해주세요");
+      return;
+    }
+    const committed = commitPending();
+    toast.success("탐사 기록이 저장되었습니다.", {
+      description: `${committed.length}장의 사진이 추가되었어요.`,
+    });
+  };
+
+  const recent = [...pending].slice(-3).reverse();
+  const last = pending[pending.length - 1];
 
   return (
     <div className="animate-fade-up flex min-h-[calc(100dvh-3.5rem)] flex-col px-5 pb-32 pt-2">
@@ -33,7 +46,7 @@ const CheckinScreen = () => {
           <div className="absolute inset-0 rounded-full border border-border" />
           <div className="absolute inset-3 rounded-full border border-dashed border-border animate-spin-slow" />
           <button
-            onClick={() => inputRef.current?.click()}
+            onClick={handleLaunch}
             disabled={busy}
             className="relative z-10 flex h-36 w-36 flex-col items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground shadow-button transition-transform active:scale-[0.96] disabled:opacity-70"
           >
@@ -52,7 +65,7 @@ const CheckinScreen = () => {
         accept="image/*"
         multiple
         className="hidden"
-        onChange={(e) => handle(e.target.files)}
+        onChange={(e) => handleFiles(e.target.files)}
       />
 
       {/* Recent strip */}
@@ -71,7 +84,7 @@ const CheckinScreen = () => {
             <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-secondary">
               <img src={p.url} alt={p.fileName} className="h-full w-full object-cover" />
               <button
-                onClick={() => removePhoto(p.id)}
+                onClick={() => removePending(p.id)}
                 className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
                 aria-label="삭제"
               >
