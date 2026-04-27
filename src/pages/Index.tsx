@@ -1,16 +1,35 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import TossHeader from "@/components/TossHeader";
+import HomeScreen from "@/components/screens/HomeScreen";
+import UploadScreen from "@/components/screens/UploadScreen";
+import AnalyzingScreen from "@/components/screens/AnalyzingScreen";
+import ResultScreen from "@/components/screens/ResultScreen";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+type Step = "home" | "upload" | "analyzing" | "result";
+
+const Index = () => {
+  const [step, setStep] = useState<Step>("home");
+
+  const back = () => {
+    if (step === "upload") setStep("home");
+    else if (step === "result") setStep("home");
+    else setStep("home");
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
-    </div>
+    <main className="min-h-dvh bg-muted/40">
+      <div className="toss-frame shadow-card">
+        <TossHeader
+          onBack={back}
+          showShare={step === "result" || step === "home"}
+        />
+        {step === "home" && <HomeScreen onStart={() => setStep("upload")} />}
+        {step === "upload" && <UploadScreen onSubmit={() => setStep("analyzing")} />}
+        {step === "analyzing" && <AnalyzingScreen onDone={() => setStep("result")} />}
+        {step === "result" && <ResultScreen onRestart={() => setStep("home")} />}
+      </div>
+    </main>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
