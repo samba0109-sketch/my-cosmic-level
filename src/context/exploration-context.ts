@@ -1,0 +1,17 @@
+import { createContext } from "react";
+import type { ExplorationStats, PhotoRecord } from "@/lib/exploration";
+
+export interface ExplorationCtxValue {
+  photos: PhotoRecord[];
+  pending: PhotoRecord[];
+  stats: ExplorationStats;
+  addFiles: (files: FileList | File[]) => Promise<PhotoRecord[]>;
+  stageFiles: (files: FileList | File[]) => Promise<PhotoRecord[]>;
+  commitPending: () => PhotoRecord[];
+  removePending: (id: string) => void;
+  clearPending: () => void;
+  removePhoto: (id: string) => void;
+  clear: () => void;
+}
+
+export const ExplorationCtx = createContext<ExplorationCtxValue | null>(null);
