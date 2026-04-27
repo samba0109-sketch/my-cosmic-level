@@ -4,104 +4,92 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Youearth design system — Toss in-app cosmic explorer */
+/* Youearth — Light Monochrome design system */
 
 @layer base {
   :root {
-    --background: 220 25% 98%;
-    --foreground: 222 47% 11%;
+    /* Pure mono palette */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 6%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 0 0% 6%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 0 0% 6%;
 
-    /* Toss blue */
-    --primary: 217 91% 56%;
+    /* Mono primary = near-black */
+    --primary: 0 0% 6%;
     --primary-foreground: 0 0% 100%;
-    --primary-soft: 217 100% 96%;
+    --primary-soft: 0 0% 96%;
 
-    /* Cosmic accent */
-    --cosmic: 258 89% 66%;
-    --cosmic-foreground: 0 0% 100%;
-    --cosmic-soft: 258 100% 97%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 6%;
 
-    --earth: 158 64% 52%;
-    --earth-foreground: 0 0% 100%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 42%;
 
-    --secondary: 220 20% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --accent: 0 0% 92%;
+    --accent-foreground: 0 0% 6%;
 
-    --muted: 220 20% 96%;
-    --muted-foreground: 220 10% 46%;
-
-    --accent: 258 100% 97%;
-    --accent-foreground: 258 89% 50%;
-
-    --destructive: 0 84% 60%;
+    --destructive: 0 0% 6%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 16% 92%;
-    --input: 220 16% 92%;
-    --ring: 217 91% 56%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 6%;
+
+    /* Surfaces */
+    --surface-1: 0 0% 100%;
+    --surface-2: 0 0% 97%;
+    --surface-3: 0 0% 93%;
 
     --radius: 1rem;
 
-    /* Gradients */
-    --gradient-cosmic: linear-gradient(135deg, hsl(258 89% 66%) 0%, hsl(217 91% 60%) 100%);
-    --gradient-aurora: linear-gradient(135deg, hsl(258 89% 66%) 0%, hsl(217 91% 60%) 50%, hsl(190 95% 55%) 100%);
-    --gradient-night: linear-gradient(180deg, hsl(245 60% 18%) 0%, hsl(258 70% 28%) 100%);
-    --gradient-soft: linear-gradient(180deg, hsl(220 100% 98%) 0%, hsl(258 100% 98%) 100%);
+    /* Mono gradients */
+    --gradient-mono: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 95%) 100%);
+    --gradient-ink: linear-gradient(135deg, hsl(0 0% 12%) 0%, hsl(0 0% 0%) 100%);
 
-    /* Shadows */
-    --shadow-soft: 0 1px 2px hsl(220 40% 20% / 0.04), 0 4px 16px hsl(220 40% 20% / 0.04);
-    --shadow-card: 0 2px 8px hsl(220 40% 20% / 0.06), 0 12px 32px hsl(220 40% 20% / 0.08);
-    --shadow-glow: 0 0 60px hsl(258 89% 66% / 0.45);
-    --shadow-button: 0 8px 24px hsl(217 91% 56% / 0.35);
+    /* Shadows — subtle */
+    --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.04), 0 4px 16px hsl(0 0% 0% / 0.04);
+    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.04), 0 8px 24px hsl(0 0% 0% / 0.06);
+    --shadow-button: 0 4px 12px hsl(0 0% 0% / 0.18);
 
-    /* Transitions */
     --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
     --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
-    --background: 240 30% 8%;
-    --foreground: 220 20% 98%;
-    --card: 240 25% 12%;
-    --card-foreground: 220 20% 98%;
-    --popover: 240 25% 12%;
-    --popover-foreground: 220 20% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --primary-soft: 217 50% 18%;
-    --cosmic: 258 89% 70%;
-    --cosmic-foreground: 0 0% 100%;
-    --cosmic-soft: 258 40% 18%;
-    --earth: 158 64% 52%;
-    --earth-foreground: 0 0% 100%;
-    --secondary: 240 20% 16%;
-    --secondary-foreground: 220 20% 98%;
-    --muted: 240 20% 16%;
-    --muted-foreground: 220 10% 65%;
-    --accent: 258 40% 18%;
-    --accent-foreground: 258 89% 80%;
-    --destructive: 0 70% 55%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 240 20% 18%;
-    --input: 240 20% 18%;
-    --ring: 217 91% 60%;
+    --background: 0 0% 4%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 6%;
+    --primary-soft: 0 0% 12%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 0 0% 16%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 0% 98%;
+    --destructive-foreground: 0 0% 6%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 0 0% 98%;
+    --surface-1: 0 0% 7%;
+    --surface-2: 0 0% 10%;
+    --surface-3: 0 0% 14%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
 
-  html, body, #root {
-    @apply h-full;
-  }
+  html, body, #root { @apply h-full; }
 
   body {
     @apply bg-background text-foreground antialiased;
@@ -111,54 +99,54 @@
 }
 
 @layer utilities {
-  .bg-gradient-cosmic { background: var(--gradient-cosmic); }
-  .bg-gradient-aurora { background: var(--gradient-aurora); }
-  .bg-gradient-night { background: var(--gradient-night); }
-  .bg-gradient-soft { background: var(--gradient-soft); }
+  .bg-gradient-mono { background: var(--gradient-mono); }
+  .bg-gradient-ink { background: var(--gradient-ink); }
+  .bg-surface-1 { background-color: hsl(var(--surface-1)); }
+  .bg-surface-2 { background-color: hsl(var(--surface-2)); }
+  .bg-surface-3 { background-color: hsl(var(--surface-3)); }
 
   .shadow-soft { box-shadow: var(--shadow-soft); }
   .shadow-card { box-shadow: var(--shadow-card); }
-  .shadow-glow { box-shadow: var(--shadow-glow); }
   .shadow-button { box-shadow: var(--shadow-button); }
 
   .text-balance { text-wrap: balance; }
+
+  .hairline { border: 1px solid hsl(var(--border)); }
 }
 
 @layer components {
-  /* Toss-style mobile frame */
   .toss-frame {
     @apply mx-auto w-full max-w-[440px] min-h-dvh bg-background relative overflow-hidden;
+  }
+  .mono-card {
+    @apply rounded-2xl bg-card hairline p-4;
   }
 }
 
 /* Animations */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
+  50% { transform: translateY(-10px); }
 }
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.08); }
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 @keyframes spin-slow {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.92); }
+  from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
-}
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
 }
 
 .animate-float { animation: float 4s ease-in-out infinite; }
-.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
-.animate-spin-slow { animation: spin-slow 30s linear infinite; }
-.animate-fade-up { animation: fade-up 0.5s var(--ease-smooth) both; }
-.animate-scale-in { animation: scale-in 0.4s var(--ease-bounce) both; }
+.animate-pulse-soft { animation: pulse-soft 2.4s ease-in-out infinite; }
+.animate-spin-slow { animation: spin-slow 40s linear infinite; }
+.animate-fade-up { animation: fade-up 0.45s var(--ease-smooth) both; }
+.animate-scale-in { animation: scale-in 0.35s var(--ease-bounce) both; }
