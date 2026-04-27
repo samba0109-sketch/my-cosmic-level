@@ -1,26 +1,23 @@
-import { Settings } from "lucide-react";
+import { Plus } from "lucide-react";
 
 interface Props {
   title?: string;
   subtitle?: string;
 }
 
-const AppHeader = ({ title = "Youearth", subtitle }: Props) => (
-  <header className="sticky top-0 z-20 flex h-14 items-center justify-between bg-background/85 px-5 backdrop-blur-xl">
-    <div className="flex items-center gap-2">
-      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
-        <span className="text-[11px] font-bold">Y</span>
-      </div>
-      <div className="leading-tight">
-        <p className="text-[15px] font-bold tracking-tight text-foreground">{title}</p>
-        {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
-      </div>
+const AppHeader = ({ title = "YOURS", subtitle }: Props) => (
+  <header className="sticky top-0 z-20 flex h-14 items-center justify-between bg-background/70 px-5 backdrop-blur-xl">
+    <div className="flex items-baseline gap-2">
+      <p className="font-display text-[15px] font-bold tracking-[0.22em] text-primary">{title}</p>
+      {subtitle && (
+        <p className="text-[10px] font-medium tracking-widest text-muted-foreground">· {subtitle}</p>
+      )}
     </div>
     <button
-      className="-mr-2 flex h-10 w-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
-      aria-label="설정"
+      className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/40 text-primary transition-all hover:shadow-glow-violet"
+      aria-label="추가"
     >
-      <Settings className="h-[18px] w-[18px]" />
+      <Plus className="h-4 w-4" />
     </button>
   </header>
 );
