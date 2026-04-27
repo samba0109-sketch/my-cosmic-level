@@ -65,13 +65,13 @@ const ResultScreen = ({ onRestart }: Props) => {
 
         <div className="grid grid-cols-3 gap-2.5">
           {[
-            { icon: Leaf, label: "자연", v: 92, color: "earth" },
-            { icon: Mountain, label: "지형", v: 78, color: "cosmic" },
-            { icon: Waves, label: "바다", v: 64, color: "primary" },
+            { icon: Leaf, label: "자연", v: 92, bg: "bg-earth/10", fg: "text-earth" },
+            { icon: Mountain, label: "지형", v: 78, bg: "bg-cosmic/10", fg: "text-cosmic" },
+            { icon: Waves, label: "바다", v: 64, bg: "bg-primary/10", fg: "text-primary" },
           ].map((m) => (
             <div key={m.label} className="rounded-2xl bg-card p-3 shadow-soft">
-              <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-${m.color}/10`}>
-                <m.icon className={`h-4 w-4 text-${m.color}`} />
+              <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-full ${m.bg}`}>
+                <m.icon className={`h-4 w-4 ${m.fg}`} />
               </div>
               <p className="text-[11px] text-muted-foreground">{m.label}</p>
               <p className="text-[18px] font-bold text-foreground">{m.v}</p>
