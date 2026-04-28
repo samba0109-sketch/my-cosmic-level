@@ -23,10 +23,41 @@ export interface ExplorationStats {
   topPercent: number;     // mock top %
 }
 
+/* ---------- HEIC conversion ---------- */
+function isHeicByName(file: File): boolean {
+  return (
+    file.type === "image/heic" ||
+    file.type === "image/heif" ||
+    /\.(heic|heif)$/i.test(file.name)
+  );
+}
+
+async function toJpeg(file: File): Promise<Blob> {
+  const { heicTo, isHeic } = await import("heic-to");
+  // Magic-byte check — more reliable than MIME/extension
+  const confirmed = await isHeic(file).catch(() => false);
+  if (!confirmed && !isHeicByName(file)) return file;
+  return await heicTo({ blob: file, type: "image/jpeg", quality: 0.92 });
+}
+
 /* ---------- EXIF extraction ---------- */
 export async function extractPhotoMeta(file: File): Promise<PhotoRecord> {
-  const url = URL.createObjectURL(file);
   const id = `${file.name}-${file.size}-${file.lastModified}`;
+
+  let displayBlob: Blob = file;
+  if (isHeicByName(file)) {
+    try {
+      displayBlob = await toJpeg(file);
+      if (import.meta.env.DEV) console.log("[HEIC] 변환 성공", file.name, displayBlob.type, displayBlob.size);
+    } catch (err) {
+      const detail = err instanceof Error
+        ? { message: err.message, name: err.name, stack: err.stack }
+        : { value: String(err) };
+      if (import.meta.env.DEV) console.warn("[HEIC] 변환 실패", file.name, detail);
+    }
+  }
+
+  const url = URL.createObjectURL(displayBlob);
   let lat: number | undefined;
   let lon: number | undefined;
   let takenAt: number | undefined;
@@ -86,7 +117,7 @@ export async function extractPhotoMeta(file: File): Promise<PhotoRecord> {
 
   const rec: PhotoRecord = { id, url, fileName: file.name, lat, lon, takenAt };
   if (lat != null && lon != null) {
-    const geo = reverseGeocode(lat, lon);
+    const geo = await reverseGeocode(lat, lon);
     rec.city = geo.city;
     rec.country = geo.country;
     rec.continent = geo.continent;
@@ -94,53 +125,7 @@ export async function extractPhotoMeta(file: File): Promise<PhotoRecord> {
   return rec;
 }
 
-/* ---------- Lightweight offline reverse geocoding ----------
- * No network. Picks the nearest known city from a small seed list,
- * within a 400km radius. Otherwise falls back to a continent guess
- * by latitude/longitude bounding box.
- */
-interface SeedCity {
-  city: string;
-  country: string;
-  continent: string;
-  lat: number;
-  lon: number;
-}
-
-const SEED_CITIES: SeedCity[] = [
-  { city: "서울", country: "대한민국", continent: "아시아", lat: 37.5665, lon: 126.978 },
-  { city: "부산", country: "대한민국", continent: "아시아", lat: 35.1796, lon: 129.0756 },
-  { city: "제주", country: "대한민국", continent: "아시아", lat: 33.4996, lon: 126.5312 },
-  { city: "도쿄", country: "일본", continent: "아시아", lat: 35.6762, lon: 139.6503 },
-  { city: "오사카", country: "일본", continent: "아시아", lat: 34.6937, lon: 135.5023 },
-  { city: "베이징", country: "중국", continent: "아시아", lat: 39.9042, lon: 116.4074 },
-  { city: "상하이", country: "중국", continent: "아시아", lat: 31.2304, lon: 121.4737 },
-  { city: "방콕", country: "태국", continent: "아시아", lat: 13.7563, lon: 100.5018 },
-  { city: "싱가포르", country: "싱가포르", continent: "아시아", lat: 1.3521, lon: 103.8198 },
-  { city: "발리", country: "인도네시아", continent: "아시아", lat: -8.4095, lon: 115.1889 },
-  { city: "두바이", country: "UAE", continent: "아시아", lat: 25.2048, lon: 55.2708 },
-  { city: "런던", country: "영국", continent: "유럽", lat: 51.5074, lon: -0.1278 },
-  { city: "파리", country: "프랑스", continent: "유럽", lat: 48.8566, lon: 2.3522 },
-  { city: "로마", country: "이탈리아", continent: "유럽", lat: 41.9028, lon: 12.4964 },
-  { city: "바르셀로나", country: "스페인", continent: "유럽", lat: 41.3851, lon: 2.1734 },
-  { city: "베를린", country: "독일", continent: "유럽", lat: 52.52, lon: 13.405 },
-  { city: "암스테르담", country: "네덜란드", continent: "유럽", lat: 52.3676, lon: 4.9041 },
-  { city: "이스탄불", country: "튀르키예", continent: "유럽", lat: 41.0082, lon: 28.9784 },
-  { city: "뉴욕", country: "미국", continent: "북아메리카", lat: 40.7128, lon: -74.006 },
-  { city: "로스앤젤레스", country: "미국", continent: "북아메리카", lat: 34.0522, lon: -118.2437 },
-  { city: "샌프란시스코", country: "미국", continent: "북아메리카", lat: 37.7749, lon: -122.4194 },
-  { city: "토론토", country: "캐나다", continent: "북아메리카", lat: 43.6532, lon: -79.3832 },
-  { city: "멕시코시티", country: "멕시코", continent: "북아메리카", lat: 19.4326, lon: -99.1332 },
-  { city: "리우데자네이루", country: "브라질", continent: "남아메리카", lat: -22.9068, lon: -43.1729 },
-  { city: "부에노스아이레스", country: "아르헨티나", continent: "남아메리카", lat: -34.6037, lon: -58.3816 },
-  { city: "리마", country: "페루", continent: "남아메리카", lat: -12.0464, lon: -77.0428 },
-  { city: "케이프타운", country: "남아프리카공화국", continent: "아프리카", lat: -33.9249, lon: 18.4241 },
-  { city: "카이로", country: "이집트", continent: "아프리카", lat: 30.0444, lon: 31.2357 },
-  { city: "나이로비", country: "케냐", continent: "아프리카", lat: -1.2921, lon: 36.8219 },
-  { city: "시드니", country: "호주", continent: "오세아니아", lat: -33.8688, lon: 151.2093 },
-  { city: "오클랜드", country: "뉴질랜드", continent: "오세아니아", lat: -36.8485, lon: 174.7633 },
-];
-
+/* ---------- Reverse geocoding (Nominatim) ---------- */
 function continentFromCoords(lat: number, lon: number): string {
   if (lat > 35 && lon > -10 && lon < 60) return "유럽";
   if (lat > -10 && lat < 55 && lon >= 60 && lon < 180) return "아시아";
@@ -151,18 +136,35 @@ function continentFromCoords(lat: number, lon: number): string {
   return "기타";
 }
 
-export function reverseGeocode(lat: number, lon: number) {
-  let best: SeedCity | null = null;
-  let bestDist = Infinity;
-  for (const c of SEED_CITIES) {
-    const d = haversineKm(lat, lon, c.lat, c.lon);
-    if (d < bestDist) {
-      bestDist = d;
-      best = c;
+export async function reverseGeocode(
+  lat: number,
+  lon: number,
+): Promise<{ city: string; country: string; continent: string }> {
+  try {
+    const resp = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&zoom=10&lat=${lat}&lon=${lon}&accept-language=ko`,
+    );
+    if (resp.ok) {
+      const data = await resp.json();
+      const addr = data.address ?? {};
+
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log("[Geocode]", { lat, lon, addr, display: data.display_name });
+      }
+
+      // Priority: city-level admin units, then sub-areas. Skip POI names (amenity).
+      const city =
+        addr.city ?? addr.town ?? addr.village ?? addr.municipality ??
+        addr.city_district ?? addr.borough ?? addr.suburb ??
+        addr.neighbourhood ?? addr.quarter ??
+        addr.county ?? addr.state ??
+        `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+      const country = addr.country ?? "—";
+      return { city, country, continent: continentFromCoords(lat, lon) };
     }
-  }
-  if (best && bestDist <= 400) {
-    return { city: best.city, country: best.country, continent: best.continent };
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("[Geocode] failed", err);
   }
   return {
     city: `${lat.toFixed(2)}, ${lon.toFixed(2)}`,

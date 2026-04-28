@@ -8,11 +8,22 @@ const CheckinScreen = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
+  const MAX_PENDING = 10;
+
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    const remaining = MAX_PENDING - pending.length;
+    if (remaining <= 0) {
+      toast(`최대 ${MAX_PENDING}장까지 등록할 수 있어요`);
+      return;
+    }
+    const arr = Array.from(files).slice(0, remaining);
+    if (files.length > arr.length) {
+      toast(`${arr.length}장만 추가됩니다 (최대 ${MAX_PENDING}장)`);
+    }
     setBusy(true);
     try {
-      await stageFiles(files);
+      await stageFiles(arr);
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -30,7 +41,7 @@ const CheckinScreen = () => {
     });
   };
 
-  const recent = [...pending].slice(-3).reverse();
+  const recent = [...pending].slice(-MAX_PENDING).reverse();
   const last = pending[pending.length - 1];
 
   return (
@@ -62,7 +73,7 @@ const CheckinScreen = () => {
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         multiple
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
@@ -70,15 +81,7 @@ const CheckinScreen = () => {
 
       {/* Recent strip */}
       <section className="mb-4">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-[14px] font-bold text-foreground">오늘의 탐사 기록</p>
-          <button
-            onClick={() => inputRef.current?.click()}
-            className="flex items-center gap-0.5 text-[12px] font-medium text-muted-foreground"
-          >
-            ADD NEW <FilePlus2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
+        <p className="mb-2 text-[14px] font-bold text-foreground">오늘의 탐사 기록</p>
         <div className="grid grid-cols-3 gap-2">
           {recent.map((p) => (
             <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-secondary">
@@ -92,22 +95,15 @@ const CheckinScreen = () => {
               </button>
             </div>
           ))}
-          {Array.from({ length: Math.max(0, 2 - recent.length) }).map((_, i) => (
+          {pending.length < MAX_PENDING && (
             <button
-              key={i}
               onClick={() => inputRef.current?.click()}
-              className="flex aspect-square items-center justify-center rounded-xl bg-secondary text-muted-foreground"
+              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border text-muted-foreground"
             >
-              <FilePlus2 className="h-5 w-5" />
+              <FilePlus2 className="h-4 w-4" />
+              <span className="text-[10px] font-bold">BROWSE</span>
             </button>
-          ))}
-          <button
-            onClick={() => inputRef.current?.click()}
-            className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border text-muted-foreground"
-          >
-            <FilePlus2 className="h-4 w-4" />
-            <span className="text-[10px] font-bold">BROWSE</span>
-          </button>
+          )}
         </div>
       </section>
 
