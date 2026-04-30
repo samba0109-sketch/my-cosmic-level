@@ -15,6 +15,7 @@ export interface PhotoRecord {
 export interface ExplorationStats {
   level: number;          // 1..100
   coverage: number;       // 0..100 (%)
+  score: number;          // unbounded score (점수)
   citiesCount: number;
   countriesCount: number;
   continentsCount: number;
@@ -209,6 +210,16 @@ export function computeStats(photos: PhotoRecord[]): ExplorationStats {
   const coverage = Math.round(cityScore + countryScore + continentScore + distScore);
 
   const level = Math.max(1, Math.min(100, Math.round(coverage)));
+  // 1000점 만점 점수 체계
+  // - 도시 다양성: 50개 = 250점 (도시당 5점)
+  // - 국가 다양성: 30개 = 300점 (국가당 10점)
+  // - 대륙 다양성: 6개 거주 대륙 = 250점 (대륙당 ~42점)
+  // - 이동 거리: 40,000km(지구 둘레) = 200점
+  const cityPts = Math.min(cities.size / 50, 1) * 250;
+  const countryPts = Math.min(countries.size / 30, 1) * 300;
+  const continentPts = Math.min(continents.size / 6, 1) * 250;
+  const distancePts = Math.min(distanceKm / 40000, 1) * 200;
+  const score = Math.round(cityPts + countryPts + continentPts + distancePts);
   // Mock global rank inversely correlated with coverage
   const globalRank = Math.max(1, Math.round(50000 * (1 - coverage / 100) + 50));
   const topPercent = Math.max(1, Math.round(100 - coverage));
@@ -216,6 +227,7 @@ export function computeStats(photos: PhotoRecord[]): ExplorationStats {
   return {
     level,
     coverage,
+    score,
     citiesCount: cities.size,
     countriesCount: countries.size,
     continentsCount: continents.size,

@@ -1,9 +1,10 @@
-import { ArrowUpRight, MapPin, Plane, Trophy } from "lucide-react";
+import { ArrowUpRight, Building2, Check, Globe, MapPin, Plane, Route, Sparkles } from "lucide-react";
 import { useExploration } from "@/context/ExplorationContext";
+import type { RecordsView } from "@/components/screens/RecordsScreen";
 
 interface Props {
   onStart: () => void;
-  onOpenRecords: () => void;
+  onOpenRecords: (opts?: { view?: RecordsView; city?: string }) => void;
 }
 
 const StatRow = ({ label, value, suffix }: { label: string; value: string; suffix?: string }) => (
@@ -27,9 +28,63 @@ const DashboardScreen = ({ onStart, onOpenRecords }: Props) => {
   const topCities = [...cityMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
   const maxCount = topCities[0]?.[1] ?? 1;
 
+  // 탐사 유형 → 다음 행선지 행성 매핑
+  const types = [
+    {
+      key: "city",
+      icon: Building2,
+      name: "도시 콜렉터",
+      planet: "Neonova",
+      desc: "네온이 빛나는 메트로폴리스 행성",
+      current: stats.citiesCount,
+      goal: 5,
+      unit: "도시",
+    },
+    {
+      key: "country",
+      icon: Globe,
+      name: "글로벌 모험가",
+      planet: "Pangea-7",
+      desc: "다문화가 공존하는 다양성의 행성",
+      current: stats.countriesCount,
+      goal: 3,
+      unit: "국가",
+    },
+    {
+      key: "continent",
+      icon: Sparkles,
+      name: "대륙 정복자",
+      planet: "Gondwana",
+      desc: "거대한 대륙들이 펼쳐진 행성",
+      current: stats.continentsCount,
+      goal: 3,
+      unit: "대륙",
+    },
+    {
+      key: "distance",
+      icon: Route,
+      name: "장거리 탐험가",
+      planet: "Outer-Reach",
+      desc: "은하 변경에 자리한 미지의 행성",
+      current: stats.distanceKm,
+      goal: 10000,
+      unit: "km",
+    },
+    {
+      key: "record",
+      icon: Plane,
+      name: "기록 매니아",
+      planet: "Memorium",
+      desc: "모든 기록이 보관된 아카이브 행성",
+      current: photos.length,
+      goal: 20,
+      unit: "장",
+    },
+  ];
+
   return (
     <div className="animate-fade-up flex min-h-[calc(100dvh-3.5rem)] flex-col gap-5 px-5 pb-32 pt-2">
-      {/* Coverage ring */}
+      {/* Score ring */}
       <section className="flex flex-col items-center pt-4">
         <div className="relative h-56 w-56">
           <svg viewBox="0 0 200 200" className="h-full w-full -rotate-90">
@@ -47,12 +102,12 @@ const DashboardScreen = ({ onStart, onOpenRecords }: Props) => {
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-[11px] font-semibold tracking-widest text-muted-foreground">COVERAGE</span>
+            <span className="text-[11px] font-semibold tracking-widest text-muted-foreground">EXPLORATION SCORE</span>
             <span className="mt-1 text-[44px] font-bold leading-none tracking-tight text-foreground">
-              {stats.coverage}
-              <span className="text-[20px] text-muted-foreground">%</span>
+              {stats.score.toLocaleString()}
+              <span className="ml-1 text-[20px] text-muted-foreground">점</span>
             </span>
-            <span className="mt-1 text-[12px] text-muted-foreground">나의 탐사 레벨</span>
+            <span className="mt-1 text-[12px] text-muted-foreground">나의 탐사 점수</span>
           </div>
         </div>
       </section>
@@ -69,7 +124,10 @@ const DashboardScreen = ({ onStart, onOpenRecords }: Props) => {
       <section className="mono-card">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-[14px] font-bold text-foreground">내가 탐사한 도시</p>
-          <button onClick={onOpenRecords} className="flex items-center gap-0.5 text-[12px] font-medium text-muted-foreground">
+          <button
+            onClick={() => onOpenRecords({ view: "grid" })}
+            className="flex items-center gap-0.5 text-[12px] font-medium text-muted-foreground"
+          >
             모두 보기 <ArrowUpRight className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -82,7 +140,11 @@ const DashboardScreen = ({ onStart, onOpenRecords }: Props) => {
             {topCities.map(([city, count]) => {
               const pct = Math.round((count / maxCount) * 100);
               return (
-                <div key={city}>
+                <button
+                  key={city}
+                  onClick={() => onOpenRecords({ view: "grid", city })}
+                  className="block w-full text-left transition-opacity active:opacity-60"
+                >
                   <div className="mb-1 flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
@@ -96,27 +158,73 @@ const DashboardScreen = ({ onStart, onOpenRecords }: Props) => {
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
         )}
       </section>
 
-      {/* CTA banner */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-ink p-5 text-primary-foreground">
-        <div className="relative z-10">
-          <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold tracking-widest opacity-70">
-            <Trophy className="h-3.5 w-3.5" /> NEW EXPLORATION
-          </p>
-          <h3 className="text-[20px] font-bold leading-tight">새로운 행성 탐사하기</h3>
-          <p className="mt-1 text-[12px] opacity-70">사진을 업로드해 탐사 지수를 올려보세요.</p>
+      {/* Exploration types → 다음 행선지 */}
+      <section className="mono-card">
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-semibold tracking-[0.18em] text-muted-foreground">NEXT DESTINATIONS</p>
+            <p className="mt-0.5 text-[14px] font-bold text-foreground">나의 탐사 유형 · 행선지 행성</p>
+          </div>
           <button
             onClick={onStart}
-            className="mt-4 inline-flex items-center gap-1 rounded-xl bg-primary-foreground px-4 py-2 text-[13px] font-bold text-foreground transition-transform active:scale-[0.97]"
+            className="text-[11px] font-bold text-primary"
           >
-            <Plane className="h-3.5 w-3.5" />새 탐사 시작하기
+            보딩 카운터로
           </button>
+        </div>
+        <div className="space-y-3">
+          {types.map((t) => {
+            const Icon = t.icon;
+            const pct = Math.min(100, Math.round((t.current / t.goal) * 100));
+            const achieved = t.current >= t.goal;
+            return (
+              <div
+                key={t.key}
+                className={`rounded-xl border p-3 transition-colors ${
+                  achieved ? "border-primary/40 bg-primary/5" : "border-border"
+                }`}
+              >
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2">
+                    <div
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                        achieved ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
+                      }`}
+                    >
+                      {achieved ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[13px] font-bold text-foreground">{t.name}</p>
+                        <span className="rounded bg-secondary px-1.5 py-px text-[9px] font-bold tracking-wider text-muted-foreground">
+                          → {t.planet.toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{t.desc}</p>
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-[11px] font-bold text-muted-foreground">
+                    {t.current.toLocaleString()}/{t.goal.toLocaleString()}{t.unit}
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      achieved ? "bg-primary" : "bg-foreground/60"
+                    }`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
     </div>

@@ -11,6 +11,7 @@ export interface ExplorationCtxValue {
   removePending: (id: string) => void;
   clearPending: () => void;
   removePhoto: (id: string) => void;
+  updatePhoto: (id: string, patch: Partial<PhotoRecord>) => void;
   clear: () => void;
 }
 

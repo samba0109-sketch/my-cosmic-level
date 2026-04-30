@@ -19,11 +19,13 @@ export const ExplorationProvider = ({ children }: { children: ReactNode }) => {
   const stageFiles = useCallback(async (files: FileList | File[]) => {
     const arr = Array.from(files);
     const recs = await Promise.all(arr.map(extractPhotoMeta));
+    let added: PhotoRecord[] = [];
     setPending((prev) => {
       const seen = new Set(prev.map((p) => p.id));
-      return [...prev, ...recs.filter((r) => !seen.has(r.id))];
+      added = recs.filter((r) => !seen.has(r.id));
+      return [...prev, ...added];
     });
-    return recs;
+    return added;
   }, []);
 
   const commitPending = useCallback(() => {
@@ -47,6 +49,10 @@ export const ExplorationProvider = ({ children }: { children: ReactNode }) => {
     setPhotos((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
+  const updatePhoto = useCallback((id: string, patch: Partial<PhotoRecord>) => {
+    setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  }, []);
+
   const clear = useCallback(() => {
     setPhotos([]);
     setPending([]);
@@ -65,9 +71,10 @@ export const ExplorationProvider = ({ children }: { children: ReactNode }) => {
       removePending,
       clearPending,
       removePhoto,
+      updatePhoto,
       clear,
     }),
-    [photos, pending, stats, addFiles, stageFiles, commitPending, removePending, clearPending, removePhoto, clear]
+    [photos, pending, stats, addFiles, stageFiles, commitPending, removePending, clearPending, removePhoto, updatePhoto, clear]
   );
 
   return <ExplorationCtx.Provider value={value}>{children}</ExplorationCtx.Provider>;

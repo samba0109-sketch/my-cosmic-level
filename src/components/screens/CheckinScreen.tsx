@@ -3,12 +3,12 @@ import { FilePlus2, MapPin, Plane, X } from "lucide-react";
 import { toast } from "sonner";
 import { useExploration } from "@/context/ExplorationContext";
 
+const MAX_PENDING = 30;
+
 const CheckinScreen = () => {
   const { pending, stageFiles, removePending, commitPending, stats } = useExploration();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-
-  const MAX_PENDING = 10;
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -18,12 +18,15 @@ const CheckinScreen = () => {
       return;
     }
     const arr = Array.from(files).slice(0, remaining);
-    if (files.length > arr.length) {
-      toast(`${arr.length}장만 추가됩니다 (최대 ${MAX_PENDING}장)`);
-    }
     setBusy(true);
     try {
-      await stageFiles(arr);
+      const added = await stageFiles(arr);
+      if (added.length > 0) {
+        toast.success(`${added.length}장의 사진이 등록되었습니다`);
+      }
+      if (files.length > arr.length) {
+        toast(`${files.length - arr.length}장은 한도 초과로 제외되었습니다 (최대 ${MAX_PENDING}장)`);
+      }
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -36,8 +39,8 @@ const CheckinScreen = () => {
       return;
     }
     const committed = commitPending();
-    toast.success("탐사 기록이 저장되었습니다.", {
-      description: `${committed.length}장의 사진이 추가되었어요.`,
+    toast.success("탐사 기록이 저장되었습니다", {
+      description: `${committed.length}장의 사진이 추가되었어요`,
     });
   };
 
@@ -81,18 +84,35 @@ const CheckinScreen = () => {
 
       {/* Recent strip */}
       <section className="mb-4">
-        <p className="mb-2 text-[14px] font-bold text-foreground">오늘의 탐사 기록</p>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-[14px] font-bold text-foreground">오늘의 탐사 기록</p>
+          <span className="text-[11px] font-medium text-muted-foreground">
+            {pending.length}/{MAX_PENDING}
+          </span>
+        </div>
+
         <div className="grid grid-cols-3 gap-2">
           {recent.map((p) => (
             <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-secondary">
               <img src={p.url} alt={p.fileName} className="h-full w-full object-cover" />
               <button
                 onClick={() => removePending(p.id)}
-                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                className="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
                 aria-label="삭제"
               >
                 <X className="h-3 w-3" />
               </button>
+              <div className="absolute inset-x-0 top-0 z-[5] bg-gradient-to-b from-black/70 to-transparent px-1.5 py-1 text-white">
+                <div className="flex items-center gap-0.5 truncate text-[10px] font-bold leading-tight">
+                  <MapPin className="h-2.5 w-2.5 shrink-0" />
+                  <span className="truncate">{p.city ?? "위치 없음"}</span>
+                </div>
+                {p.lat != null && p.lon != null && (
+                  <p className="mt-0.5 text-[8px] font-medium leading-tight opacity-90">
+                    {p.lat.toFixed(3)}°, {p.lon.toFixed(3)}°
+                  </p>
+                )}
+              </div>
             </div>
           ))}
           {pending.length < MAX_PENDING && (
@@ -104,33 +124,6 @@ const CheckinScreen = () => {
               <span className="text-[10px] font-bold">BROWSE</span>
             </button>
           )}
-        </div>
-      </section>
-
-      {/* Current location */}
-      <section className="mono-card">
-        <div className="mb-2 flex items-center gap-1.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary">
-            <MapPin className="h-3.5 w-3.5 text-foreground" />
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold tracking-widest text-muted-foreground">현재 위치</p>
-            <p className="text-[14px] font-bold text-foreground">{last?.city ?? "기록 없음"}</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2 pt-2">
-          <div>
-            <p className="text-[10px] text-muted-foreground">위도</p>
-            <p className="text-[15px] font-bold tracking-tight text-foreground">
-              {last?.lat != null ? `${last.lat.toFixed(4)}°` : "—"}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground">경도</p>
-            <p className="text-[15px] font-bold tracking-tight text-foreground">
-              {last?.lon != null ? `${last.lon.toFixed(4)}°` : "—"}
-            </p>
-          </div>
         </div>
       </section>
     </div>
