@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { Download, Minus, RotateCcw, RefreshCw, Search, Shuffle, X, MapPin } from "lucide-react";
+import { Download, Minus, Plus, RotateCcw, RefreshCw, Search, Shuffle, X, MapPin } from "lucide-react";
 import { useExploration } from "@/context/ExplorationContext";
 import { reverseGeocode } from "@/lib/exploration";
 import type { PhotoRecord } from "@/lib/exploration";
