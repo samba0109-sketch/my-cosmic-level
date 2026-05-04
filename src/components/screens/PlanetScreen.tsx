@@ -7,7 +7,7 @@ import type { PhotoRecord } from "@/lib/exploration";
 /* ── constants ───────────────────────────────────────────────── */
 const SVG_W = 320, SVG_H = 290;
 const MIN_ZOOM = 0.4, MAX_ZOOM = 15;
-const BASE_R = 3.8;          // base star radius (SVG units)
+const BASE_R = 2.8;          // base star radius (SVG units)
 const STEP_S = 0.38;         // seconds between each star reveal
 
 /* ── types ───────────────────────────────────────────────────── */
