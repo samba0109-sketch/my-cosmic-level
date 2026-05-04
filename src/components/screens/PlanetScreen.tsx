@@ -37,7 +37,10 @@ function project(lat: number, lon: number, b: Bounds, w: number, h: number): Pt 
 function genBgStars(n: number, w: number, h: number) {
   let s = 2026;
   const rng = () => { s = (s*1664525+1013904223)&0x7fffffff; return s/0x7fffffff; };
-  return Array.from({ length: n }, (_, i) => ({ x: rng()*w, y: rng()*h, r: rng()*0.9+0.2, o: rng()*0.45+0.1, sp: i%6===0 }));
+  return Array.from({ length: n }, (_, i) => ({
+    x: rng()*w, y: rng()*h, r: rng()*0.9+0.2, o: rng()*0.45+0.1,
+    sp: i%6===0, sv: Math.floor(rng()*3), // sparkle variant 0-2
+  }));
 }
 
 function getConstellationName(n: number) {
@@ -57,37 +60,156 @@ async function searchNominatim(q: string): Promise<NominatimResult[]> {
   } catch { return []; }
 }
 
-/* ── StarBurst SVG ───────────────────────────────────────────── */
-// Sharp 4-pointed starburst like classic constellation illustrations (Pisces style)
-// centered at (0,0) – place with <g transform="translate(x,y)">
+/* ── Star shape helpers ──────────────────────────────────────── */
+// 4-pointed polygon: 8 vertices (4 tips + 4 waists)
 function starPts(len: number, w: number): string {
   return `0,${-len} ${w},${-w} ${len},0 ${w},${w} 0,${len} ${-w},${w} ${-len},0 ${-w},${-w}`;
 }
 
-function StarBurst({ r, active = false }: { r: number; active?: boolean }) {
-  const L  = r * 5.8;   // main spike length (sharp)
-  const W  = r * 0.26;  // spike waist — very thin for crisp tips
-  const DL = r * 3.0;   // diagonal accent spike length
-  const DW = r * 0.18;  // diagonal spike waist
+// Deterministic variant 0-5 from photo ID (stable across re-renders)
+const NUM_VARIANTS = 6;
+function photoVariant(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (Math.imul(h, 31) + id.charCodeAt(i)) >>> 0;
+  return h % NUM_VARIANTS;
+}
+
+/* ── StarBurst variants ──────────────────────────────────────── */
+// All centered at (0,0) — place with <g transform="translate(x,y)">
+// variant 0 : sharp 4-point   (#04-05 style)
+// variant 1 : elongated cross (#06-08 style — very long thin spikes)
+// variant 2 : 8-spike radiant (#13-14 style — alternating long/short lines)
+// variant 3 : wide 4-point    (#21 style — broader, rounder arms)
+// variant 4 : twinkle cluster (#22-23 style — main + satellite sparkles)
+// variant 5 : ring + 4-point  (#56 style — circle outline + center star)
+function StarBurst({ r, active = false, variant = 0 }: { r: number; active?: boolean; variant?: number }) {
   const glow = active ? 0.18 : 0.06;
-  return (
-    <g>
-      {/* Soft glow halos */}
+  const halo = (
+    <>
       <circle r={r * 5.5} fill={`rgba(255,255,255,${glow})`} />
       <circle r={r * 2.2} fill={`rgba(255,255,255,${glow * 2.5})`} />
-      {/* Diagonal accent spikes — subtle */}
-      <polygon points={starPts(DL, DW)} fill="white" opacity={0.50} transform="rotate(45)" />
-      {/* Main 4-pointed cross spikes */}
-      <polygon points={starPts(L, W)} fill="white" opacity={0.96} />
-      {/* Bright core */}
+    </>
+  );
+
+  if (variant === 1) {
+    // Very elongated cross — two long thin needles at 0° and 90°
+    const L = r * 7.5, W = r * 0.16;
+    return (
+      <g>
+        {halo}
+        <polygon points={starPts(L, W)} fill="white" opacity={0.92} />
+        <polygon points={starPts(L, W)} fill="white" opacity={0.92} transform="rotate(90)" />
+        <circle r={r * 0.9} fill="white" />
+      </g>
+    );
+  }
+
+  if (variant === 2) {
+    // 8-spike radiant: 4 long + 4 short thin lines
+    return (
+      <g>
+        {halo}
+        {Array.from({ length: 8 }, (_, i) => {
+          const a = (i * 45 - 90) * (Math.PI / 180);
+          const len = i % 2 === 0 ? r * 5.8 : r * 3.2;
+          const sw  = i % 2 === 0 ? r * 0.20 : r * 0.12;
+          const op  = i % 2 === 0 ? 0.95 : 0.52;
+          return (
+            <line key={i}
+              x1={0} y1={0}
+              x2={Math.cos(a) * len} y2={Math.sin(a) * len}
+              stroke="white" strokeWidth={sw} strokeLinecap="round" opacity={op}
+            />
+          );
+        })}
+        <circle r={r * 0.9} fill="white" />
+      </g>
+    );
+  }
+
+  if (variant === 3) {
+    // Wide 4-point — broader arms, more diamond-like (#21 style)
+    return (
+      <g>
+        {halo}
+        <polygon points={starPts(r * 5.2, r * 0.85)} fill="white" opacity={0.88} />
+        <polygon points={starPts(r * 2.8, r * 0.55)} fill="white" opacity={0.42} transform="rotate(45)" />
+        <circle r={r * 1.0} fill="white" />
+      </g>
+    );
+  }
+
+  if (variant === 4) {
+    // Main star + two satellite sparkles (#22-23 style)
+    return (
+      <g>
+        {halo}
+        <polygon points={starPts(r * 4.5, r * 0.22)} fill="white" opacity={0.95} />
+        <polygon points={starPts(r * 2.2, r * 0.15)} fill="white" opacity={0.48} transform="rotate(45)" />
+        {/* satellite top-right */}
+        <g transform={`translate(${r * 4.2},${-r * 4.0})`}>
+          <polygon points={starPts(r * 1.6, r * 0.13)} fill="white" opacity={0.72} />
+        </g>
+        {/* satellite bottom-left */}
+        <g transform={`translate(${-r * 3.2},${r * 3.8})`}>
+          <polygon points={starPts(r * 1.0, r * 0.10)} fill="white" opacity={0.50} />
+        </g>
+        <circle r={r * 0.9} fill="white" />
+      </g>
+    );
+  }
+
+  if (variant === 5) {
+    // Circle ring + 4-point center (#56 style)
+    return (
+      <g>
+        {halo}
+        <circle r={r * 4.5} fill="none" stroke="white" strokeWidth={r * 0.20} opacity={0.36} />
+        <polygon points={starPts(r * 3.8, r * 0.22)} fill="white" opacity={0.92} />
+        <polygon points={starPts(r * 1.9, r * 0.15)} fill="white" opacity={0.42} transform="rotate(45)" />
+        <circle r={r * 0.9} fill="white" />
+      </g>
+    );
+  }
+
+  // variant 0 (default): sharp 4-point (#04-05 style)
+  return (
+    <g>
+      {halo}
+      <polygon points={starPts(r * 3.0, r * 0.18)} fill="white" opacity={0.50} transform="rotate(45)" />
+      <polygon points={starPts(r * 5.8, r * 0.26)} fill="white" opacity={0.96} />
       <circle r={r * 0.95} fill="white" />
     </g>
   );
 }
 
-// Background sparkle stars — same sharp style, smaller
-function MiniSparkle({ r, o }: { r: number; o: number }) {
+// Background sparkle stars — mix of 4-point variants
+function MiniSparkle({ r, o, variant = 0 }: { r: number; o: number; variant?: number }) {
   const L = r * 3.0, W = r * 0.20;
+  if (variant === 1) {
+    // elongated cross mini
+    return (
+      <g opacity={o}>
+        <polygon points={starPts(L * 1.2, W * 0.7)} fill="white" opacity={0.90} />
+        <polygon points={starPts(L * 1.2, W * 0.7)} fill="white" opacity={0.90} transform="rotate(90)" />
+        <circle r={r * 0.6} fill="white" />
+      </g>
+    );
+  }
+  if (variant === 2) {
+    // 4-line radiant mini
+    return (
+      <g opacity={o}>
+        {[0, 45, 90, 135].map(a => {
+          const rad = (a - 90) * Math.PI / 180;
+          return <line key={a} x1={0} y1={0} x2={Math.cos(rad)*L} y2={Math.sin(rad)*L}
+            stroke="white" strokeWidth={W * 0.8} strokeLinecap="round" />;
+        })}
+        <circle r={r * 0.6} fill="white" />
+      </g>
+    );
+  }
+  // default: sharp 4-point mini
   return (
     <g opacity={o}>
       <polygon points={starPts(L * 0.6, W * 0.8)} fill="white" opacity={0.5} transform="rotate(45)" />
@@ -436,7 +558,7 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
           {/* Fixed bg micro-stars */}
           {bgStars.map((s, i) =>
             s.sp
-              ? <g key={i} transform={`translate(${s.x},${s.y})`}><MiniSparkle r={s.r*1.3} o={s.o*0.65} /></g>
+              ? <g key={i} transform={`translate(${s.x},${s.y})`}><MiniSparkle r={s.r*1.3} o={s.o*0.65} variant={s.sv} /></g>
               : <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="white" opacity={s.o} />
           )}
 
@@ -480,7 +602,7 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
                     style={{ animationDelay: `${delay}s`, cursor: "pointer" }}
                     onClick={e => { e.stopPropagation(); if (!didDrag.current) setActiveIdx(isActive ? null : i); }}
                   >
-                    <StarBurst r={r} active={isActive} />
+                    <StarBurst r={r} active={isActive} variant={photoVariant(photoPts[i].id)} />
                   </g>
 
                   {/* Popup */}
