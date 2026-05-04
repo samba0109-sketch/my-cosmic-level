@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { Download, Minus, Plus, RotateCcw, RefreshCw, Search, Shuffle, X, MapPin } from "lucide-react";
+import { Download, Minus, RotateCcw, RefreshCw, Search, Shuffle, X, MapPin } from "lucide-react";
 import { useExploration } from "@/context/ExplorationContext";
 import { reverseGeocode } from "@/lib/exploration";
 import type { PhotoRecord } from "@/lib/exploration";
@@ -558,41 +558,51 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
           src={bgPhoto.url}
           alt=""
           className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
-          style={{ filter: "brightness(0.28) saturate(0.65)" }}
+          style={{ filter: "brightness(0.70) saturate(0.85)" }}
         />
       ) : (
         <div className="absolute inset-0 bg-[#03070f]" />
       )}
-      {/* Gradient overlay: heavy top + bottom, lighter middle */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/72 via-black/10 to-black/80" />
+      {/* Light overlay — ~30% darkening over the photo */}
+      <div className="pointer-events-none absolute inset-0 bg-black/30" />
 
       {/* ── Content layer ── */}
       <div className="relative z-10 flex flex-col">
 
         {/* Stats header — label above, bold number below (reference style) */}
         <div className="px-5 pt-5 pb-1">
-          <p className="mb-3 text-[9px] font-semibold tracking-[0.22em] text-white/38 uppercase">
+          <p className="mb-3 text-[9px] font-semibold tracking-[0.22em] text-white/60 uppercase"
+            style={{ fontFamily: "'Zen Dots', cursive" }}>
             My Constellation
           </p>
           <div className="flex items-end">
             {[
-              { label: "City",           value: String(stats.citiesCount)                      },
-              { label: "Country",        value: String(stats.countriesCount)                    },
-              { label: "Total Distance", value: `${stats.distanceKm.toLocaleString()}km`        },
+              { label: "City",           value: String(stats.citiesCount)               },
+              { label: "Country",        value: String(stats.countriesCount)             },
+              { label: "Total Distance", value: `${stats.distanceKm.toLocaleString()}km` },
             ].map((s, i) => (
               <div key={s.label} className="flex items-end">
                 {i > 0 && (
-                  <div className="mx-4 mb-[6px] h-7 w-px self-end bg-white/18" />
+                  <div className="mx-4 mb-[6px] h-7 w-px self-end bg-white/30" />
                 )}
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest text-white/40">{s.label}</p>
-                  <p className="text-[34px] font-bold leading-none text-white">{s.value}</p>
+                  <p className="text-[9px] uppercase tracking-widest text-white/70"
+                    style={{ fontFamily: "'Zen Dots', cursive" }}>
+                    {s.label}
+                  </p>
+                  <p className="text-[34px] leading-none text-white drop-shadow-lg"
+                    style={{ fontFamily: "'Zen Dots', cursive" }}>
+                    {s.value}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
           {dateRange && (
-            <p className="mt-1.5 text-[11px] text-white/30">{dateRange}</p>
+            <p className="mt-1.5 text-[11px] text-white/50"
+              style={{ fontFamily: "'Zen Dots', cursive" }}>
+              {dateRange}
+            </p>
           )}
         </div>
 
@@ -741,7 +751,7 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
           <button onClick={downloadCard}
             className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 py-3.5 text-[13px] font-semibold text-white backdrop-blur-sm transition-colors active:bg-white/20">
             <Download className="h-4 w-4" />
-            여행 기록 카드 저장
+            카드 저장
           </button>
 
           {/* GPS 미등록 섹션 */}
@@ -782,12 +792,6 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
             </div>
           )}
 
-          {/* CTA */}
-          <button onClick={onAddRecord}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3.5 text-[14px] font-bold text-black shadow-button transition-transform active:scale-[0.98]">
-            <Plus className="h-4 w-4" />
-            새로운 탐사 기록하기
-          </button>
         </div>
       </div>
 
