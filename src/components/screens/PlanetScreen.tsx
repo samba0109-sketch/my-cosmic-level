@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { Download, Minus, Plus, RotateCcw, RefreshCw, Search, Shuffle, X, MapPin } from "lucide-react";
+import { Minus, MoreVertical, Plus, RotateCcw, RefreshCw, Search, Shuffle, X, MapPin } from "lucide-react";
+import html2canvas from "html2canvas";
 import { useExploration } from "@/context/ExplorationContext";
 import { reverseGeocode } from "@/lib/exploration";
 import type { PhotoRecord } from "@/lib/exploration";
@@ -249,13 +250,17 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
 
   /* transform */
   const [tr, setTr] = useState<Transform>({ zoom: 1, panX: 0, panY: 0 });
-  const svgRef   = useRef<SVGSVGElement>(null);
-  const dragRef  = useRef<{ sx: number; sy: number; bx: number; by: number } | null>(null);
-  const pinchRef = useRef<{ dist: number; mx: number; my: number } | null>(null);
-  const didDrag  = useRef(false);
+  const svgRef      = useRef<SVGSVGElement>(null);
+  const captureRef  = useRef<HTMLDivElement>(null);   // capture zone
+  const dragRef     = useRef<{ sx: number; sy: number; bx: number; by: number } | null>(null);
+  const pinchRef    = useRef<{ dist: number; mx: number; my: number } | null>(null);
+  const didDrag     = useRef(false);
 
   /* star popup */
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
+
+  /* three-dot menu */
+  const [menuOpen, setMenuOpen] = useState(false);
 
   /* background photo (random from all uploaded photos) */
   const [bgIdx, setBgIdx] = useState<number>(0);
@@ -403,205 +408,92 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
   };
   const closeModal = () => { setGpsTarget(null); setSearchQuery(""); setSearchResults([]); };
 
-  /* Canvas card download — workout-record style */
-  const downloadCard = async () => {
-    const CW = 630, CH = 1120;
-    const canvas = document.createElement("canvas");
-    canvas.width = CW; canvas.height = CH;
-    const ctx = canvas.getContext("2d")!;
-
-    /* ── 1. Background ── */
-    const firstPhoto = photoPts[0] ?? photos[0];
-    let bgLoaded = false;
-    if (firstPhoto?.url) {
-      try {
-        await new Promise<void>((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => {
-            const iw = img.naturalWidth, ih = img.naturalHeight;
-            const scale = Math.max(CW / iw, CH / ih);
-            const sw = iw * scale, sh = ih * scale;
-            ctx.filter = "blur(14px) brightness(0.32)";
-            ctx.drawImage(img, (CW - sw) / 2, (CH - sh) / 2, sw, sh);
-            ctx.filter = "none";
-            bgLoaded = true;
-            resolve();
-          };
-          img.onerror = reject;
-          img.src = firstPhoto.url;
-        });
-      } catch { /* fall through to dark gradient */ }
-    }
-    if (!bgLoaded) {
-      const bg = ctx.createLinearGradient(0, 0, 0, CH);
-      bg.addColorStop(0, "#111111");
-      bg.addColorStop(1, "#1a1a1a");
-      ctx.fillStyle = bg; ctx.fillRect(0, 0, CW, CH);
-    }
-
-    /* ── 2. Dark overlay ── */
-    const ov = ctx.createLinearGradient(0, 0, 0, CH);
-    ov.addColorStop(0,    "rgba(0,0,0,0.76)");
-    ov.addColorStop(0.38, "rgba(0,0,0,0.52)");
-    ov.addColorStop(0.62, "rgba(0,0,0,0.52)");
-    ov.addColorStop(1,    "rgba(0,0,0,0.82)");
-    ctx.fillStyle = ov; ctx.fillRect(0, 0, CW, CH);
-
-    /* ── 3. Header ── */
-    ctx.textAlign = "center";
-    ctx.fillStyle = "rgba(255,255,255,0.42)";
-    ctx.font = "300 12px 'Helvetica Neue',Arial,sans-serif";
-    /* manual letter-spacing for "YOUEARTH" */
-    const brand = "Y O U E A R T H";
-    ctx.fillText(brand, CW / 2, 82);
-
-    if (dateRange) {
-      ctx.fillStyle = "rgba(255,255,255,0.28)";
-      ctx.font = "300 11px 'Helvetica Neue',Arial,sans-serif";
-      ctx.fillText(dateRange, CW / 2, 104);
-    }
-
-    /* hairline below header */
-    const hairline = (y: number) => {
-      ctx.save();
-      ctx.strokeStyle = "rgba(255,255,255,0.11)";
-      ctx.lineWidth = 0.5;
-      ctx.beginPath(); ctx.moveTo(56, y); ctx.lineTo(CW - 56, y); ctx.stroke();
-      ctx.restore();
-    };
-    hairline(124);
-
-    /* ── 4. Three stats ── */
-    const STATS_CY = 310; // vertical center of the number baseline
-    const colW = CW / 3;
-    const statRows = [
-      { value: String(stats.citiesCount),                    label: "CITIES"    },
-      { value: String(stats.countriesCount),                  label: "COUNTRIES" },
-      { value: stats.distanceKm.toLocaleString(),             label: "KM"        },
-    ];
-
-    statRows.forEach((s, i) => {
-      const cx = colW * i + colW / 2;
-
-      /* number */
-      const fontSize = i < 2 ? 88 : 74;
-      ctx.fillStyle = "#ffffff";
-      ctx.font = `bold ${fontSize}px 'Helvetica Neue',Arial,sans-serif`;
-      ctx.textAlign = "center";
-      ctx.fillText(s.value, cx, STATS_CY);
-
-      /* label */
-      ctx.fillStyle = "rgba(255,255,255,0.36)";
-      ctx.font = "300 11px 'Helvetica Neue',Arial,sans-serif";
-      ctx.fillText(s.label, cx, STATS_CY + 30);
-
-      /* vertical separator */
-      if (i < 2) {
-        ctx.save();
-        ctx.strokeStyle = "rgba(255,255,255,0.11)";
-        ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        ctx.moveTo(colW * (i + 1), STATS_CY - 76);
-        ctx.lineTo(colW * (i + 1), STATS_CY + 42);
-        ctx.stroke();
-        ctx.restore();
-      }
-    });
-
-    hairline(STATS_CY + 60);
-
-    /* ── 5. Route visualization ── */
-    if (photoPts.length > 0) {
-      const RX = 64, RY = STATS_CY + 96, RW = CW - 128, RH = 450;
-      const cb = computeBounds(photoPts as { lat: number; lon: number }[]);
-      const rPts = photoPts.map(p => {
-        const pt = project(p.lat!, p.lon!, cb, RW, RH);
-        return { x: pt.x + RX, y: pt.y + RY, rec: p };
+  /* 현재 화면 캡처 후 저장 (탭/버튼 제외) */
+  const captureScreen = async () => {
+    const el = captureRef.current;
+    if (!el) return;
+    try {
+      const canvas = await html2canvas(el, {
+        useCORS: true,
+        allowTaint: true,
+        scale: window.devicePixelRatio || 2,
+        backgroundColor: null,
+        ignoreElements: (node) => node.hasAttribute("data-capture-ignore"),
       });
-
-      /* dashed connecting lines */
-      if (rPts.length > 1) {
-        ctx.save();
-        ctx.setLineDash([4, 7]);
-        ctx.strokeStyle = "rgba(255,255,255,0.20)";
-        ctx.lineWidth = 1;
-        rPts.forEach((pt, i) => {
-          if (i >= rPts.length - 1) return;
-          ctx.beginPath(); ctx.moveTo(pt.x, pt.y); ctx.lineTo(rPts[i + 1].x, rPts[i + 1].y); ctx.stroke();
-        });
-        ctx.restore();
-      }
-
-      /* dots */
-      rPts.forEach((pt, i) => {
-        const isEdge = i === 0 || i === rPts.length - 1;
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, isEdge ? 5 : 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = isEdge ? "#ffffff" : "rgba(255,255,255,0.50)";
-        ctx.fill();
-      });
-
-      /* start / end city labels */
-      const drawCityLabel = (pt: { x: number; y: number; rec: PhotoRecord }, side: "left" | "right") => {
-        const city = pt.rec.city ?? pt.rec.country ?? "";
-        if (!city) return;
-        ctx.textAlign = side;
-        ctx.fillStyle = "rgba(255,255,255,0.65)";
-        ctx.font = "500 10px 'Helvetica Neue',Arial,sans-serif";
-        const ox = side === "left" ? 11 : -11;
-        ctx.fillText(city.toUpperCase(), pt.x + ox, pt.y + 4);
-      };
-      if (rPts.length >= 1) drawCityLabel(rPts[0], "left");
-      if (rPts.length >= 2) drawCityLabel(rPts[rPts.length - 1], "right");
+      canvas.toBlob(blob => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `youearth-${Date.now()}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }, "image/png");
+    } catch (e) {
+      console.error("capture failed", e);
     }
-
-    /* ── 6. Footer ── */
-    ctx.textAlign = "center";
-    ctx.fillStyle = "rgba(255,255,255,0.16)";
-    ctx.font = "300 10px 'Courier New',monospace";
-    ctx.fillText("YOUEARTH.APP", CW / 2, CH - 38);
-
-    /* ── Export ── */
-    canvas.toBlob(blob => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = `youearth-record-${Date.now()}.png`; a.click();
-      URL.revokeObjectURL(url);
-    }, "image/png");
   };
 
   /* ── render ──────────────────────────────────────────────────── */
   return (
     <div className="animate-fade-up relative min-h-[calc(100dvh-3.5rem)] overflow-hidden pb-24">
 
-      {/* ── Full-bleed background ── */}
-      {bgPhoto ? (
-        <img
-          key={bgPhoto.id}
-          src={bgPhoto.url}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
-          style={{ filter: "brightness(0.88) saturate(0.9)" }}
-        />
-      ) : (
-        <div className="absolute inset-0 bg-[#03070f]" />
-      )}
-      {/* 10% overlay */}
-      <div className="pointer-events-none absolute inset-0 bg-black/10" />
+      {/* ── Capture zone (탭/버튼 제외한 시각 영역) ── */}
+      <div ref={captureRef} className="relative">
+
+        {/* Full-bleed background */}
+        {bgPhoto ? (
+          <img
+            key={bgPhoto.id}
+            src={bgPhoto.url}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
+            style={{ filter: "brightness(0.85) saturate(0.9)" }}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-[#03070f]" />
+        )}
+        {/* 20% overlay */}
+        <div className="pointer-events-none absolute inset-0 bg-black/20" />
 
       {/* ── Content ── */}
       <div className="relative z-10 flex flex-col">
 
-        {/* ── TOP: MY CONSTELLATION + 이름 (가운데 정렬) ── */}
+        {/* ── TOP: MY CONSTELLATION + 이름 (가운데 정렬) + ⋮ 메뉴 ── */}
         <div className="flex flex-col items-center pt-6 pb-0 text-center">
           <p className="text-[9px] tracking-[0.28em] text-white/55 uppercase drop-shadow"
             style={{ fontFamily: "'Zen Dots', cursive" }}>
             My Constellation
           </p>
-          <p className="mt-1.5 text-[21px] leading-tight text-white drop-shadow-lg"
-            style={{ fontFamily: "'Zen Dots', cursive" }}>
-            {constellationName}
-          </p>
+          {/* 이름 + 점세개 버튼 */}
+          <div className="relative mt-1.5 flex items-center gap-2">
+            <p className="text-[21px] leading-tight text-white drop-shadow-lg"
+              style={{ fontFamily: "'Zen Dots', cursive" }}>
+              {constellationName}
+            </p>
+            <button
+              data-capture-ignore
+              onClick={() => setMenuOpen(v => !v)}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-white/50 transition-colors hover:text-white/80"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+
+            {/* 드롭다운 메뉴 */}
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-[180]" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 top-8 z-[190] min-w-[140px] overflow-hidden rounded-xl border border-white/15 bg-black/70 shadow-lg backdrop-blur-md">
+                  <button
+                    onClick={() => { setMenuOpen(false); captureScreen(); }}
+                    className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[13px] text-white transition-colors hover:bg-white/10"
+                  >
+                    카드 저장하기
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* ── 별자리 맵 SVG ── */}
@@ -695,7 +587,7 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
           </svg>
 
           {/* Zoom controls */}
-          <div className="absolute bottom-3 right-3 z-20 flex flex-col gap-1">
+          <div data-capture-ignore className="absolute bottom-3 right-3 z-20 flex flex-col gap-1">
             {[
               { icon: <Plus className="h-3.5 w-3.5" />, fn: btnIn },
               { icon: <RotateCcw className="h-3 w-3" />, fn: btnReset },
@@ -709,7 +601,7 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
           </div>
 
           {/* Replay + shuffle */}
-          <div className="absolute bottom-3 left-3 z-20 flex flex-col gap-1">
+          <div data-capture-ignore className="absolute bottom-3 left-3 z-20 flex flex-col gap-1">
             {photoPts.length > 0 && (
               <button onClick={replayAnim}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-black/25 text-white/60 backdrop-blur-sm transition-colors hover:bg-black/45"
@@ -727,7 +619,7 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
           </div>
 
           {tr.zoom !== 1 && (
-            <div className="absolute left-3 top-3 z-20 rounded bg-black/40 px-1.5 py-0.5 text-[10px] font-bold text-white/50 backdrop-blur-sm">
+            <div data-capture-ignore className="absolute left-3 top-3 z-20 rounded bg-black/40 px-1.5 py-0.5 text-[10px] font-bold text-white/50 backdrop-blur-sm">
               {tr.zoom.toFixed(1)}×
             </div>
           )}
@@ -790,15 +682,7 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
         )}
 
       </div>
-
-      {/* ── 카드 저장 FAB — 우측 하단, 탭 바 살짝 위 ── */}
-      <button
-        onClick={downloadCard}
-        className="fixed bottom-[5.5rem] right-4 z-[150] flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-lg transition-transform active:scale-90"
-        title="카드 저장"
-      >
-        <Download className="h-5 w-5 text-black" />
-      </button>
+      </div>{/* /captureRef */}
 
       {/* ── GPS Search Modal ── */}
       {gpsTarget && (
