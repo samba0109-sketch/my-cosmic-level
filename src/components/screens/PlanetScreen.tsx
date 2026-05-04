@@ -747,13 +747,6 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
         {/* ── Bottom actions ── */}
         <div className="mt-1 space-y-3 px-5">
 
-          {/* Download */}
-          <button onClick={downloadCard}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 py-3.5 text-[13px] font-semibold text-white backdrop-blur-sm transition-colors active:bg-white/20">
-            <Download className="h-4 w-4" />
-            카드 저장
-          </button>
-
           {/* GPS 미등록 섹션 */}
           {noGpsPts.length > 0 && (
             <div className="rounded-2xl border border-white/12 bg-black/35 p-4 backdrop-blur-sm">
@@ -794,6 +787,15 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
 
         </div>
       </div>
+
+      {/* ── 카드 저장 FAB — 탭 바 바로 위 중앙 ── */}
+      <button
+        onClick={downloadCard}
+        className="fixed bottom-[4.5rem] left-1/2 z-50 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full border border-white/25 bg-white/15 shadow-lg backdrop-blur-md transition-transform active:scale-90"
+        title="카드 저장"
+      >
+        <Download className="h-5 w-5 text-white" />
+      </button>
 
       {/* ── GPS Search Modal ── */}
       {gpsTarget && (
