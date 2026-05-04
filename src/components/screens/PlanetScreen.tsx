@@ -5,9 +5,9 @@ import { reverseGeocode } from "@/lib/exploration";
 import type { PhotoRecord } from "@/lib/exploration";
 
 /* ── constants ───────────────────────────────────────────────── */
-const SVG_W = 320, SVG_H = 290;
+const SVG_W = 320, SVG_H = 400;
 const MIN_ZOOM = 0.4, MAX_ZOOM = 15;
-const BASE_R = 2.8;          // base star radius (SVG units)
+const BASE_R = 1.4;          // base star radius (SVG units)
 const STEP_S = 0.38;         // seconds between each star reveal
 
 /* ── types ───────────────────────────────────────────────────── */
@@ -43,13 +43,37 @@ function genBgStars(n: number, w: number, h: number) {
   }));
 }
 
-function getConstellationName(n: number) {
-  if (n===0) return "미지의 별자리";
-  if (n===1) return "외톨이별자리";
-  if (n<=3)  return "나그네자리";
-  if (n<=6)  return "탐험가자리";
-  if (n<=12) return "은하수자리";
-  return "대항해자자리";
+/** 여행 데이터 기반 한글 별자리 이름 생성 (결정론적) */
+function generateConstellationName(
+  cities: number, countries: number, distance: number, photos: PhotoRecord[]
+): string {
+  if (photos.length === 0) return "미지의 별자리";
+  if (photos.length === 1) return "홀로 빛난 별";
+
+  const withTime = photos.filter(p => p.takenAt);
+  const nightRatio = withTime.length
+    ? withTime.filter(p => { const h = new Date(p.takenAt!).getHours(); return h >= 20 || h < 6; }).length / withTime.length
+    : 0;
+
+  const seed = ((cities * 7 + countries * 13 + Math.floor(distance / 500)) % 97 + 97) % 97;
+  const pick = <T,>(arr: T[]) => arr[seed % arr.length];
+
+  const isNight   = nightRatio > 0.4;
+  const isLong    = distance > 10000;
+  const isMid     = distance > 3000;
+  const manyCtry  = countries >= 4;
+  const manyCiti  = cities >= 6;
+
+  if (isNight && isLong)    return pick(["별빛 너머 항로", "야행의 먼 궤도", "밤을 건너온 여정"]);
+  if (isNight && manyCiti)  return pick(["도시의 밤별자리", "불빛 사이 항로", "밤의 연결들"]);
+  if (isNight)              return pick(["어둠 속 좌표", "달빛 여정", "밤하늘 궤적"]);
+  if (isLong && manyCtry)   return pick(["경계 없는 흐름", "대륙을 건넌 빛", "먼 하늘 아래서"]);
+  if (isLong)               return pick(["먼 여정의 궤적", "수평선 너머 별", "넓은 하늘의 항로"]);
+  if (manyCtry && manyCiti) return pick(["흩어진 빛의 지도", "경계를 지운 별자리", "연결된 여러 하늘"]);
+  if (manyCiti)             return pick(["촘촘한 여정", "이어진 별무리", "도시와 도시 사이"]);
+  if (manyCtry)             return pick(["흩어진 별자리", "경계 위의 항로", "여러 하늘 아래"]);
+  if (isMid)                return pick(["이어진 여정", "흘러간 빛들", "중간 거리의 궤적"]);
+  return pick(["나만의 별자리", "조용한 궤적", "작은 여정"]);
 }
 
 async function searchNominatim(q: string): Promise<NominatimResult[]> {
@@ -298,12 +322,11 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
     return first === last ? fmt(first) : `${fmt(first)} — ${fmt(last)}`;
   }, [photoPts]);
 
-  /* most visited city */
-  const topCity = useMemo(() => {
-    const m = new Map<string, number>();
-    photos.forEach(p => { if (p.city) m.set(p.city, (m.get(p.city)??0)+1); });
-    return [...m.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0] ?? null;
-  }, [photos]);
+  /* personalised Korean constellation name */
+  const constellationName = useMemo(
+    () => generateConstellationName(stats.citiesCount, stats.countriesCount, stats.distanceKm, photos),
+    [stats.citiesCount, stats.countriesCount, stats.distanceKm, photos],
+  );
 
   /* animation timing */
   const totalDuration = 0.2 + photoPts.length * STEP_S + 0.75;
@@ -549,7 +572,7 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
 
   /* ── render ──────────────────────────────────────────────────── */
   return (
-    <div className="animate-fade-up relative flex min-h-[calc(100dvh-3.5rem)] flex-col overflow-hidden pb-32">
+    <div className="animate-fade-up relative min-h-[calc(100dvh-3.5rem)] overflow-hidden pb-24">
 
       {/* ── Full-bleed background ── */}
       {bgPhoto ? (
@@ -558,56 +581,31 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
           src={bgPhoto.url}
           alt=""
           className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
-          style={{ filter: "brightness(0.70) saturate(0.85)" }}
+          style={{ filter: "brightness(0.88) saturate(0.9)" }}
         />
       ) : (
         <div className="absolute inset-0 bg-[#03070f]" />
       )}
-      {/* Light overlay — ~30% darkening over the photo */}
-      <div className="pointer-events-none absolute inset-0 bg-black/30" />
+      {/* 10% overlay */}
+      <div className="pointer-events-none absolute inset-0 bg-black/10" />
 
-      {/* ── Content layer ── */}
+      {/* ── Content ── */}
       <div className="relative z-10 flex flex-col">
 
-        {/* Stats header — label above, bold number below (reference style) */}
-        <div className="px-5 pt-5 pb-1">
-          <p className="mb-3 text-[9px] font-semibold tracking-[0.22em] text-white/60 uppercase"
+        {/* ── TOP: MY CONSTELLATION + 이름 (가운데 정렬) ── */}
+        <div className="flex flex-col items-center pt-6 pb-0 text-center">
+          <p className="text-[9px] tracking-[0.28em] text-white/55 uppercase drop-shadow"
             style={{ fontFamily: "'Zen Dots', cursive" }}>
             My Constellation
           </p>
-          <div className="flex items-end">
-            {[
-              { label: "City",           value: String(stats.citiesCount)               },
-              { label: "Country",        value: String(stats.countriesCount)             },
-              { label: "Total Distance", value: `${stats.distanceKm.toLocaleString()}km` },
-            ].map((s, i) => (
-              <div key={s.label} className="flex items-end">
-                {i > 0 && (
-                  <div className="mx-4 mb-[6px] h-7 w-px self-end bg-white/30" />
-                )}
-                <div>
-                  <p className="text-[9px] uppercase tracking-widest text-white/70"
-                    style={{ fontFamily: "'Zen Dots', cursive" }}>
-                    {s.label}
-                  </p>
-                  <p className="text-[34px] leading-none text-white drop-shadow-lg"
-                    style={{ fontFamily: "'Zen Dots', cursive" }}>
-                    {s.value}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-          {dateRange && (
-            <p className="mt-1.5 text-[11px] text-white/50"
-              style={{ fontFamily: "'Zen Dots', cursive" }}>
-              {dateRange}
-            </p>
-          )}
+          <p className="mt-1.5 text-[21px] leading-tight text-white drop-shadow-lg"
+            style={{ fontFamily: "'Zen Dots', cursive" }}>
+            {constellationName}
+          </p>
         </div>
 
-        {/* ── Star map SVG — full width, no rounded box ── */}
-        <div className="relative">
+        {/* ── 별자리 맵 SVG ── */}
+        <div className="relative mt-1">
           <svg
             ref={svgRef}
             viewBox={`0 0 ${SVG_W} ${SVG_H}`}
@@ -618,14 +616,14 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
             onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
             onClick={() => { if (!didDrag.current) setActiveIdx(null); }}
           >
-            {/* Subtle sparkles only — photo provides the texture */}
+            {/* Subtle sparkles — photo provides texture */}
             {bgStars.filter(s => s.sp).map((s, i) => (
               <g key={i} transform={`translate(${s.x},${s.y})`}>
                 <MiniSparkle r={s.r * 1.1} o={s.o * 0.28} variant={s.sv} />
               </g>
             ))}
 
-            {/* Lines — inside zoom group so they scale with map */}
+            {/* Lines — inside zoom group */}
             <g transform={`translate(${tr.panX},${tr.panY}) scale(${tr.zoom})`}>
               <g key={`lines-${animKey}`}>
                 {svgPts.map((p, i) => {
@@ -633,14 +631,10 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
                   const len = lineLens[i];
                   const delay = STEP_S * 0.5 + i * STEP_S + 0.2;
                   return (
-                    <line
-                      key={i}
-                      className="line-anim"
+                    <line key={i} className="line-anim"
                       x1={p.x} y1={p.y} x2={svgPts[i+1].x} y2={svgPts[i+1].y}
-                      stroke="rgba(255,255,255,0.60)"
-                      strokeWidth={1.5 / tr.zoom}
-                      strokeLinecap="round"
-                      strokeDasharray={len}
+                      stroke="rgba(255,255,255,0.60)" strokeWidth={1.5 / tr.zoom}
+                      strokeLinecap="round" strokeDasharray={len}
                       style={{ '--dl': len, animationDelay: `${delay}s` } as React.CSSProperties}
                     />
                   );
@@ -648,19 +642,17 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
               </g>
             </g>
 
-            {/* Stars — pixel-stable, outside zoom group */}
+            {/* Stars — pixel-stable */}
             <g key={`stars-${animKey}`}>
               {svgPts.map((p, i) => {
                 const sx = p.x * tr.zoom + tr.panX;
                 const sy = p.y * tr.zoom + tr.panY;
                 const r  = BASE_R * weights[i];
                 const isActive = activeIdx === i;
-                const delay = 0.2 + i * STEP_S;
                 return (
                   <g key={photoPts[i].id} transform={`translate(${sx},${sy})`}>
-                    <g
-                      className="star-anim"
-                      style={{ animationDelay: `${delay}s`, cursor: "pointer" }}
+                    <g className="star-anim"
+                      style={{ animationDelay: `${0.2 + i * STEP_S}s`, cursor: "pointer" }}
                       onClick={e => { e.stopPropagation(); if (!didDrag.current) setActiveIdx(isActive ? null : i); }}
                     >
                       <StarBurst r={r} active={isActive} variant={photoVariant(photoPts[i].id)} />
@@ -682,7 +674,6 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
                 );
               })}
 
-              {/* Completion ring */}
               {photoPts.length > 1 && (() => {
                 const cx = svgPts.reduce((s,p)=>s+p.x*tr.zoom+tr.panX, 0) / svgPts.length;
                 const cy = svgPts.reduce((s,p)=>s+p.y*tr.zoom+tr.panY, 0) / svgPts.length;
@@ -695,16 +686,15 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
               })()}
             </g>
 
-            {/* Empty state */}
             {svgPts.length === 0 && (
               <text x={SVG_W/2} y={SVG_H/2} textAnchor="middle"
-                fill="rgba(255,255,255,0.20)" fontSize="11" fontFamily="sans-serif">
+                fill="rgba(255,255,255,0.22)" fontSize="11" fontFamily="sans-serif">
                 GPS 사진을 올리면 별자리가 그려져요
               </text>
             )}
           </svg>
 
-          {/* Zoom controls — right */}
+          {/* Zoom controls */}
           <div className="absolute bottom-3 right-3 z-20 flex flex-col gap-1">
             {[
               { icon: <Plus className="h-3.5 w-3.5" />, fn: btnIn },
@@ -712,31 +702,30 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
               { icon: <Minus className="h-3.5 w-3.5" />, fn: btnOut },
             ].map((b, i) => (
               <button key={i} onClick={b.fn}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white/60 backdrop-blur-sm transition-colors hover:bg-black/50 active:bg-black/60">
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-black/25 text-white/60 backdrop-blur-sm transition-colors hover:bg-black/45">
                 {b.icon}
               </button>
             ))}
           </div>
 
-          {/* Left controls: replay + shuffle */}
+          {/* Replay + shuffle */}
           <div className="absolute bottom-3 left-3 z-20 flex flex-col gap-1">
             {photoPts.length > 0 && (
               <button onClick={replayAnim}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white/60 backdrop-blur-sm transition-colors hover:bg-black/50 active:bg-black/60"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-black/25 text-white/60 backdrop-blur-sm transition-colors hover:bg-black/45"
                 title="애니메이션 다시 보기">
                 <RefreshCw className="h-3 w-3" />
               </button>
             )}
             {photos.length > 1 && (
               <button onClick={shuffleBg}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white/60 backdrop-blur-sm transition-colors hover:bg-black/50 active:bg-black/60"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-black/25 text-white/60 backdrop-blur-sm transition-colors hover:bg-black/45"
                 title="배경 사진 바꾸기">
                 <Shuffle className="h-3 w-3" />
               </button>
             )}
           </div>
 
-          {/* Zoom level badge */}
           {tr.zoom !== 1 && (
             <div className="absolute left-3 top-3 z-20 rounded bg-black/40 px-1.5 py-0.5 text-[10px] font-bold text-white/50 backdrop-blur-sm">
               {tr.zoom.toFixed(1)}×
@@ -744,48 +733,62 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
           )}
         </div>
 
-        {/* ── Bottom actions ── */}
-        <div className="mt-1 space-y-3 px-5">
-
-          {/* GPS 미등록 섹션 */}
-          {noGpsPts.length > 0 && (
-            <div className="rounded-2xl border border-white/12 bg-black/35 p-4 backdrop-blur-sm">
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <p className="text-[9px] font-semibold tracking-widest text-white/40 uppercase">GPS Unregistered</p>
-                  <p className="mt-0.5 text-[14px] font-bold text-white">
-                    위치 미등록 <span className="text-white/70">{noGpsPts.length}장</span>
-                  </p>
-                </div>
-                <MapPin className="h-5 w-5 text-white/40" />
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {noGpsPts.slice(0, 6).map(p => (
-                  <button key={p.id}
-                    onClick={() => { setGpsTarget(p); setSearchQuery(""); setSearchResults([]); }}
-                    className="group relative aspect-square overflow-hidden rounded-xl bg-white/10">
-                    <img src={p.url} alt={p.fileName} className="h-full w-full object-cover" />
-                    <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 to-transparent p-1 opacity-0 transition-opacity group-hover:opacity-100">
-                      <span className="text-[9px] font-bold text-white">위치 등록</span>
-                    </div>
-                    <div className="absolute right-1 top-1 rounded-full bg-black/50 p-0.5">
-                      <MapPin className="h-3 w-3 text-white/80" />
-                    </div>
-                  </button>
-                ))}
-                {noGpsPts.length > 6 && (
-                  <div className="flex aspect-square items-center justify-center rounded-xl bg-white/10">
-                    <p className="text-[12px] font-bold text-white/50">+{noGpsPts.length - 6}</p>
-                  </div>
-                )}
-              </div>
-              <p className="mt-2 text-center text-[11px] text-white/35">
-                사진을 탭해서 위치를 등록하면 별자리에 추가돼요
-              </p>
+        {/* ── BOTTOM: 세로 정렬 스탯 ── */}
+        <div className="mx-5 mt-3 overflow-hidden rounded-2xl border border-white/10 bg-black/20 backdrop-blur-sm">
+          {[
+            { label: "City",           value: String(stats.citiesCount)               },
+            { label: "Country",        value: String(stats.countriesCount)             },
+            { label: "Total Distance", value: `${stats.distanceKm.toLocaleString()}km` },
+            ...(dateRange ? [{ label: "기간", value: dateRange }] : []),
+          ].map(({ label, value }, i, arr) => (
+            <div key={label}
+              className={`flex items-center justify-between px-5 py-3 ${i < arr.length - 1 ? "border-b border-white/8" : ""}`}>
+              <p className="text-[10px] uppercase tracking-widest text-white/45"
+                style={{ fontFamily: "'Zen Dots', cursive" }}>{label}</p>
+              <p className="text-[16px] text-white drop-shadow"
+                style={{ fontFamily: "'Zen Dots', cursive" }}>{value}</p>
             </div>
-          )}
-
+          ))}
         </div>
+
+        {/* GPS 미등록 섹션 */}
+        {noGpsPts.length > 0 && (
+          <div className="mx-5 mt-3 rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-[9px] font-semibold tracking-widest text-white/40 uppercase">GPS Unregistered</p>
+                <p className="mt-0.5 text-[14px] font-bold text-white">
+                  위치 미등록 <span className="text-white/60">{noGpsPts.length}장</span>
+                </p>
+              </div>
+              <MapPin className="h-5 w-5 text-white/35" />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {noGpsPts.slice(0, 6).map(p => (
+                <button key={p.id}
+                  onClick={() => { setGpsTarget(p); setSearchQuery(""); setSearchResults([]); }}
+                  className="group relative aspect-square overflow-hidden rounded-xl bg-white/10">
+                  <img src={p.url} alt={p.fileName} className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 to-transparent p-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="text-[9px] font-bold text-white">위치 등록</span>
+                  </div>
+                  <div className="absolute right-1 top-1 rounded-full bg-black/50 p-0.5">
+                    <MapPin className="h-3 w-3 text-white/80" />
+                  </div>
+                </button>
+              ))}
+              {noGpsPts.length > 6 && (
+                <div className="flex aspect-square items-center justify-center rounded-xl bg-white/10">
+                  <p className="text-[12px] font-bold text-white/50">+{noGpsPts.length - 6}</p>
+                </div>
+              )}
+            </div>
+            <p className="mt-2 text-center text-[11px] text-white/35">
+              사진을 탭해서 위치를 등록하면 별자리에 추가돼요
+            </p>
+          </div>
+        )}
+
       </div>
 
       {/* ── 카드 저장 FAB — 우측 하단, 탭 바 살짝 위 ── */}
