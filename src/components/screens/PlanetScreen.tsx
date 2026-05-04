@@ -16,46 +16,6 @@ interface Pt { x: number; y: number }
 interface Transform { zoom: number; panX: number; panY: number }
 interface NominatimResult { place_id: number; display_name: string; lat: string; lon: string }
 
-/* ── color helpers ───────────────────────────────────────────── */
-function hexRgb(h: string) { return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
-function lerp(a: number, b: number, t: number) { return Math.round(a + (b-a)*t); }
-function lerpColor(c1: string, c2: string, t: number): string {
-  const [r1,g1,b1] = hexRgb(c1), [r2,g2,b2] = hexRgb(c2);
-  return `rgb(${lerp(r1,r2,t)},${lerp(g1,g2,t)},${lerp(b1,b2,t)})`;
-}
-
-// Time-of-day → color (aiming at the "아침 → 밤" gradient)
-const TIME_PALETTE: [number, string][] = [
-  [0,  "#1C3D8C"], // midnight - deep blue
-  [5,  "#5C3492"], // pre-dawn - deep purple
-  [7,  "#E8603C"], // dawn - red-orange
-  [9,  "#F5C842"], // morning - golden
-  [12, "#FFFBE8"], // noon - warm white
-  [15, "#F5A623"], // afternoon - amber
-  [18, "#E8503A"], // sunset - red
-  [20, "#9B59B6"], // dusk - purple
-  [22, "#2C3E9A"], // evening - navy
-  [24, "#1C3D8C"], // midnight - deep blue
-];
-
-function hourToColor(h: number): string {
-  for (let i = 0; i < TIME_PALETTE.length - 1; i++) {
-    const [h1, c1] = TIME_PALETTE[i], [h2, c2] = TIME_PALETTE[i+1];
-    if (h >= h1 && h <= h2) return lerpColor(c1, c2, (h-h1)/(h2-h1));
-  }
-  return "#FFFFFF";
-}
-
-function photoColor(p: PhotoRecord, idx: number, total: number): string {
-  if (p.takenAt) {
-    const d = new Date(p.takenAt);
-    return hourToColor(d.getHours() + d.getMinutes() / 60);
-  }
-  // Sequential fallback: gold → purple → blue
-  const t = total <= 1 ? 0 : idx / (total - 1);
-  if (t < 0.5) return lerpColor("#F5C842", "#9B59B6", t * 2);
-  return lerpColor("#9B59B6", "#1C3D8C", (t - 0.5) * 2);
-}
 
 /* ── geo helpers ─────────────────────────────────────────────── */
 function computeBounds(pts: { lat: number; lon: number }[]): Bounds {
@@ -98,28 +58,43 @@ async function searchNominatim(q: string): Promise<NominatimResult[]> {
 }
 
 /* ── StarBurst SVG ───────────────────────────────────────────── */
+// Sharp 4-pointed starburst like classic constellation illustrations (Pisces style)
 // centered at (0,0) – place with <g transform="translate(x,y)">
-function StarBurst({ r, color = "white", active = false }: { r: number; color?: string; active?: boolean }) {
-  const s  = r * 4.5, ds = r * 2.2, ew = r * 0.44, dw = r * 0.25;
-  const glow = active ? 0.22 : 0.08;
+function starPts(len: number, w: number): string {
+  return `0,${-len} ${w},${-w} ${len},0 ${w},${w} 0,${len} ${-w},${w} ${-len},0 ${-w},${-w}`;
+}
+
+function StarBurst({ r, active = false }: { r: number; active?: boolean }) {
+  const L  = r * 5.8;   // main spike length (sharp)
+  const W  = r * 0.26;  // spike waist — very thin for crisp tips
+  const DL = r * 3.0;   // diagonal accent spike length
+  const DW = r * 0.18;  // diagonal spike waist
+  const glow = active ? 0.18 : 0.06;
   return (
     <g>
-      <circle r={r*6}   fill={`rgba(255,255,255,${glow})`} />
-      <circle r={r*2.8} fill={`rgba(255,255,255,${glow*1.8})`} />
-      {/* Primary cross spikes */}
-      <ellipse rx={s}  ry={ew} fill={color} opacity={0.95} />
-      <ellipse rx={ew} ry={s}  fill={color} opacity={0.95} />
-      {/* Diagonal accent spikes */}
-      <ellipse rx={ds} ry={dw} fill={color} opacity={0.5} transform="rotate(45)" />
-      <ellipse rx={ds} ry={dw} fill={color} opacity={0.5} transform="rotate(-45)" />
-      {/* Core */}
-      <circle r={r*1.1} fill="white" />
+      {/* Soft glow halos */}
+      <circle r={r * 5.5} fill={`rgba(255,255,255,${glow})`} />
+      <circle r={r * 2.2} fill={`rgba(255,255,255,${glow * 2.5})`} />
+      {/* Diagonal accent spikes — subtle */}
+      <polygon points={starPts(DL, DW)} fill="white" opacity={0.50} transform="rotate(45)" />
+      {/* Main 4-pointed cross spikes */}
+      <polygon points={starPts(L, W)} fill="white" opacity={0.96} />
+      {/* Bright core */}
+      <circle r={r * 0.95} fill="white" />
     </g>
   );
 }
 
+// Background sparkle stars — same sharp style, smaller
 function MiniSparkle({ r, o }: { r: number; o: number }) {
-  return <g opacity={o}><ellipse rx={r*2.8} ry={r*0.32} fill="white" /><ellipse rx={r*0.32} ry={r*2.8} fill="white" /><circle r={r*0.9} fill="white" /></g>;
+  const L = r * 3.0, W = r * 0.20;
+  return (
+    <g opacity={o}>
+      <polygon points={starPts(L * 0.6, W * 0.8)} fill="white" opacity={0.5} transform="rotate(45)" />
+      <polygon points={starPts(L, W)} fill="white" opacity={0.95} />
+      <circle r={r * 0.7} fill="white" />
+    </g>
+  );
 }
 
 /* ── main component ──────────────────────────────────────────── */
@@ -170,9 +145,6 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
       return Math.min(1 + near * 0.45, 2.8);
     });
   }, [photoPts]);
-
-  /* colors per photo (time-of-day gradient) */
-  const colors = useMemo(() => photoPts.map((p,i) => photoColor(p, i, photoPts.length)), [photoPts]);
 
   /* line lengths (for stroke-dashoffset animation) */
   const lineLens = useMemo(() =>
@@ -480,8 +452,8 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
                     key={i}
                     className="line-anim"
                     x1={p.x} y1={p.y} x2={svgPts[i+1].x} y2={svgPts[i+1].y}
-                    stroke={colors[i]}
-                    strokeWidth={1.6 / tr.zoom}
+                    stroke="rgba(255,255,255,0.60)"
+                    strokeWidth={1.5 / tr.zoom}
                     strokeLinecap="round"
                     strokeDasharray={len}
                     style={{ '--dl': len, animationDelay: `${delay}s` } as React.CSSProperties}
@@ -508,7 +480,7 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
                     style={{ animationDelay: `${delay}s`, cursor: "pointer" }}
                     onClick={e => { e.stopPropagation(); if (!didDrag.current) setActiveIdx(isActive ? null : i); }}
                   >
-                    <StarBurst r={r} color={colors[i]} active={isActive} />
+                    <StarBurst r={r} active={isActive} />
                   </g>
 
                   {/* Popup */}
@@ -519,7 +491,7 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
                     return (
                       <g>
                         <rect x={-lw/2} y={ly} width={lw} height={lh} rx={5}
-                          fill="rgba(5,14,35,0.93)" stroke={colors[i]+"66"} strokeWidth={0.7} />
+                          fill="rgba(5,14,35,0.93)" stroke="rgba(255,255,255,0.25)" strokeWidth={0.7} />
                         <text x={0} y={ly+lh*0.67} textAnchor="middle" fill="white"
                           fontSize={fs} fontFamily="'Courier New',monospace" fontWeight="bold">{label}</text>
                       </g>
@@ -608,20 +580,6 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
               <p className="text-[10px] font-semibold tracking-wider text-muted-foreground">STARS</p>
             </div>
           </div>
-
-          {/* Color legend */}
-          {photoPts.length > 1 && (
-            <div className="mt-3 flex items-center gap-2">
-              <div className="h-1.5 flex-1 rounded-full" style={{
-                background: `linear-gradient(to right, ${TIME_PALETTE.slice(2,8).map(([,c])=>c).join(',')})`
-              }} />
-              <div className="flex items-center justify-between w-full absolute left-0 px-5" style={{position:'static'}}>
-              </div>
-              <div className="flex shrink-0 items-center gap-3 text-[9px] font-semibold text-muted-foreground">
-                <span>🌅 아침</span><span>☀️ 낮</span><span>🌙 밤</span>
-              </div>
-            </div>
-          )}
 
           <div className="mt-3 grid grid-cols-3 divide-x divide-border rounded-xl border border-border">
             {[
