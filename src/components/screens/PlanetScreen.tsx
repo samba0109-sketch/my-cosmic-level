@@ -579,7 +579,7 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
         <svg
           ref={svgRef}
           viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-          className="w-full touch-none select-none"
+          className="relative z-10 w-full touch-none select-none"
           style={{ cursor: dragRef.current ? "grabbing" : "grab" }}
           onWheel={onWheel}
           onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
@@ -677,7 +677,7 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
         </svg>
 
         {/* Zoom + replay controls */}
-        <div className="absolute bottom-9 right-2 flex flex-col gap-1">
+        <div className="absolute bottom-9 right-2 z-20 flex flex-col gap-1">
           {[
             { icon: <Plus className="h-3.5 w-3.5" />, fn: btnIn },
             { icon: <RotateCcw className="h-3 w-3" />, fn: btnReset },
@@ -691,7 +691,7 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
         </div>
 
         {/* Bottom-left controls: replay + bg shuffle */}
-        <div className="absolute left-2 bottom-9 flex flex-col gap-1">
+        <div className="absolute left-2 bottom-9 z-20 flex flex-col gap-1">
           {photoPts.length > 0 && (
             <button onClick={replayAnim}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/65 backdrop-blur-sm transition-colors hover:bg-white/20 active:bg-white/30"
