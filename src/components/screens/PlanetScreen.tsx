@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState, useEffect } from "react";
-import { Download, Minus, Plus, RotateCcw, RefreshCw, Search, X, MapPin } from "lucide-react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import { Download, Minus, Plus, RotateCcw, RefreshCw, Search, Shuffle, X, MapPin } from "lucide-react";
 import { useExploration } from "@/context/ExplorationContext";
 import { reverseGeocode } from "@/lib/exploration";
 import type { PhotoRecord } from "@/lib/exploration";
@@ -232,6 +232,21 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
 
   /* star popup */
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
+
+  /* background photo (random from all uploaded photos) */
+  const [bgIdx, setBgIdx] = useState<number>(0);
+  useEffect(() => {
+    if (photos.length > 0) setBgIdx(Math.floor(Math.random() * photos.length));
+  }, []); // randomise once on mount
+  const bgPhoto = photos.length > 0 ? photos[bgIdx % photos.length] : null;
+  const shuffleBg = useCallback(() => {
+    if (photos.length <= 1) return;
+    setBgIdx(prev => {
+      let next = Math.floor(Math.random() * photos.length);
+      if (next === prev % photos.length) next = (next + 1) % photos.length;
+      return next;
+    });
+  }, [photos.length]);
 
   /* animation: key increments to remount animated group → restart */
   const [animKey, setAnimKey] = useState(0);
@@ -545,6 +560,22 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
 
       {/* ── Star Map ── */}
       <div className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-2xl bg-[#03070f]">
+
+        {/* User photo background */}
+        {bgPhoto && (
+          <>
+            <img
+              key={bgPhoto.id}
+              src={bgPhoto.url}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
+              style={{ filter: "brightness(0.25) saturate(0.6)" }}
+            />
+            {/* Vignette overlay so edges stay dark and stars stay readable */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/65 pointer-events-none" />
+          </>
+        )}
+
         <svg
           ref={svgRef}
           viewBox={`0 0 ${SVG_W} ${SVG_H}`}
@@ -659,14 +690,23 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
           ))}
         </div>
 
-        {/* Replay animation button */}
-        {photoPts.length > 0 && (
-          <button onClick={replayAnim}
-            className="absolute left-2 bottom-9 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/65 backdrop-blur-sm transition-colors hover:bg-white/20 active:bg-white/30"
-            title="애니메이션 다시 보기">
-            <RefreshCw className="h-3 w-3" />
-          </button>
-        )}
+        {/* Bottom-left controls: replay + bg shuffle */}
+        <div className="absolute left-2 bottom-9 flex flex-col gap-1">
+          {photoPts.length > 0 && (
+            <button onClick={replayAnim}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/65 backdrop-blur-sm transition-colors hover:bg-white/20 active:bg-white/30"
+              title="애니메이션 다시 보기">
+              <RefreshCw className="h-3 w-3" />
+            </button>
+          )}
+          {photos.length > 1 && (
+            <button onClick={shuffleBg}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/65 backdrop-blur-sm transition-colors hover:bg-white/20 active:bg-white/30"
+              title="배경 사진 바꾸기">
+              <Shuffle className="h-3 w-3" />
+            </button>
+          )}
+        </div>
 
         {tr.zoom !== 1 && (
           <div className="absolute left-2 top-2 rounded bg-black/40 px-1.5 py-0.5 text-[10px] font-bold text-white/50 backdrop-blur-sm">
