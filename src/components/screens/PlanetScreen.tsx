@@ -788,13 +788,13 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
         </div>
       </div>
 
-      {/* ── 카드 저장 FAB — 탭 바 바로 위 중앙 ── */}
+      {/* ── 카드 저장 FAB — 우측 하단, 탭 바 살짝 위 ── */}
       <button
         onClick={downloadCard}
-        className="fixed bottom-[4.5rem] left-1/2 z-50 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full border border-white/25 bg-white/15 shadow-lg backdrop-blur-md transition-transform active:scale-90"
+        className="fixed bottom-[5.5rem] right-4 z-[150] flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-lg transition-transform active:scale-90"
         title="카드 저장"
       >
-        <Download className="h-5 w-5 text-white" />
+        <Download className="h-5 w-5 text-black" />
       </button>
 
       {/* ── GPS Search Modal ── */}
