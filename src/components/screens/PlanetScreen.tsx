@@ -549,264 +549,246 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
 
   /* ── render ──────────────────────────────────────────────────── */
   return (
-    <div className="animate-fade-up flex min-h-[calc(100dvh-3.5rem)] flex-col pb-32 pt-2">
+    <div className="animate-fade-up relative flex min-h-[calc(100dvh-3.5rem)] flex-col overflow-hidden pb-32">
 
-      {/* Header */}
-      <div className="mb-3 px-5 text-center">
-        <p className="text-[11px] font-semibold tracking-widest text-muted-foreground">MY CONSTELLATION</p>
-        <h2 className="mt-0.5 text-[22px] font-bold text-foreground">나의 별자리</h2>
-        {dateRange && <p className="mt-0.5 text-[11px] text-muted-foreground">{dateRange}</p>}
-      </div>
+      {/* ── Full-bleed background ── */}
+      {bgPhoto ? (
+        <img
+          key={bgPhoto.id}
+          src={bgPhoto.url}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
+          style={{ filter: "brightness(0.28) saturate(0.65)" }}
+        />
+      ) : (
+        <div className="absolute inset-0 bg-[#03070f]" />
+      )}
+      {/* Gradient overlay: heavy top + bottom, lighter middle */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/72 via-black/10 to-black/80" />
 
-      {/* ── Star Map ── */}
-      <div className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-2xl bg-[#03070f]">
+      {/* ── Content layer ── */}
+      <div className="relative z-10 flex flex-col">
 
-        {/* User photo background */}
-        {bgPhoto && (
-          <>
-            <img
-              key={bgPhoto.id}
-              src={bgPhoto.url}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
-              style={{ filter: "brightness(0.25) saturate(0.6)" }}
-            />
-            {/* Vignette overlay so edges stay dark and stars stay readable */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/65 pointer-events-none" />
-          </>
-        )}
-
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-          className="relative z-10 w-full touch-none select-none"
-          style={{ cursor: dragRef.current ? "grabbing" : "grab" }}
-          onWheel={onWheel}
-          onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
-          onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
-          onClick={() => { if (!didDrag.current) setActiveIdx(null); }}
-        >
-          {/* Fixed bg micro-stars */}
-          {bgStars.map((s, i) =>
-            s.sp
-              ? <g key={i} transform={`translate(${s.x},${s.y})`}><MiniSparkle r={s.r*1.3} o={s.o*0.65} variant={s.sv} /></g>
-              : <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="white" opacity={s.o} />
-          )}
-
-          {/* Lines — inside zoom group so they scale with map */}
-          <g transform={`translate(${tr.panX},${tr.panY}) scale(${tr.zoom})`}>
-            <g key={`lines-${animKey}`}>
-              {svgPts.map((p, i) => {
-                if (i >= svgPts.length - 1) return null;
-                const len = lineLens[i];
-                const delay = STEP_S * 0.5 + i * STEP_S + 0.2;
-                return (
-                  <line
-                    key={i}
-                    className="line-anim"
-                    x1={p.x} y1={p.y} x2={svgPts[i+1].x} y2={svgPts[i+1].y}
-                    stroke="rgba(255,255,255,0.60)"
-                    strokeWidth={1.5 / tr.zoom}
-                    strokeLinecap="round"
-                    strokeDasharray={len}
-                    style={{ '--dl': len, animationDelay: `${delay}s` } as React.CSSProperties}
-                  />
-                );
-              })}
-            </g>
-          </g>
-
-          {/* Stars — positioned at screen coords (pixel-stable, outside zoom group) */}
-          <g key={`stars-${animKey}`}>
-            {svgPts.map((p, i) => {
-              // Compute screen position from map coords + current transform
-              const sx = p.x * tr.zoom + tr.panX;
-              const sy = p.y * tr.zoom + tr.panY;
-              const r  = BASE_R * weights[i]; // fixed pixel size
-              const isActive = activeIdx === i;
-              const delay = 0.2 + i * STEP_S;
-
-              return (
-                <g key={photoPts[i].id} transform={`translate(${sx},${sy})`}>
-                  <g
-                    className="star-anim"
-                    style={{ animationDelay: `${delay}s`, cursor: "pointer" }}
-                    onClick={e => { e.stopPropagation(); if (!didDrag.current) setActiveIdx(isActive ? null : i); }}
-                  >
-                    <StarBurst r={r} active={isActive} variant={photoVariant(photoPts[i].id)} />
-                  </g>
-
-                  {/* Popup */}
-                  {isActive && (() => {
-                    const label = (photoPts[i].city ?? `${photoPts[i].lat?.toFixed(2)},${photoPts[i].lon?.toFixed(2)}`).toUpperCase();
-                    const fs = 8.5, lw = label.length * fs * 0.66 + 18, lh = 20;
-                    const ly = -(r * 6.5 + lh + 4);
-                    return (
-                      <g>
-                        <rect x={-lw/2} y={ly} width={lw} height={lh} rx={5}
-                          fill="rgba(5,14,35,0.93)" stroke="rgba(255,255,255,0.25)" strokeWidth={0.7} />
-                        <text x={0} y={ly+lh*0.67} textAnchor="middle" fill="white"
-                          fontSize={fs} fontFamily="'Courier New',monospace" fontWeight="bold">{label}</text>
-                      </g>
-                    );
-                  })()}
-                </g>
-              );
-            })}
-
-            {/* Completion ring - fires after all stars are done */}
-            {photoPts.length > 1 && (() => {
-              const cx = svgPts.reduce((s,p)=>s+p.x*tr.zoom+tr.panX, 0) / svgPts.length;
-              const cy = svgPts.reduce((s,p)=>s+p.y*tr.zoom+tr.panY, 0) / svgPts.length;
-              return (
-                <circle key={`ring-${animKey}`} cx={cx} cy={cy} r={8} fill="none"
-                  stroke="rgba(255,255,255,0.55)" strokeWidth={1.5}
-                  style={{ animation: `completionRing 1.8s ease-out ${totalDuration}s both` }}
-                />
-              );
-            })()}
-          </g>
-
-          {/* Empty state */}
-          {svgPts.length === 0 && (
-            <text x={SVG_W/2} y={SVG_H/2} textAnchor="middle"
-              fill="rgba(255,255,255,0.22)" fontSize="11" fontFamily="sans-serif">
-              GPS 사진을 올리면 별자리가 그려져요
-            </text>
-          )}
-        </svg>
-
-        {/* Zoom + replay controls */}
-        <div className="absolute bottom-9 right-2 z-20 flex flex-col gap-1">
-          {[
-            { icon: <Plus className="h-3.5 w-3.5" />, fn: btnIn },
-            { icon: <RotateCcw className="h-3 w-3" />, fn: btnReset },
-            { icon: <Minus className="h-3.5 w-3.5" />, fn: btnOut },
-          ].map((b, i) => (
-            <button key={i} onClick={b.fn}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/65 backdrop-blur-sm transition-colors hover:bg-white/20 active:bg-white/30">
-              {b.icon}
-            </button>
-          ))}
-        </div>
-
-        {/* Bottom-left controls: replay + bg shuffle */}
-        <div className="absolute left-2 bottom-9 z-20 flex flex-col gap-1">
-          {photoPts.length > 0 && (
-            <button onClick={replayAnim}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/65 backdrop-blur-sm transition-colors hover:bg-white/20 active:bg-white/30"
-              title="애니메이션 다시 보기">
-              <RefreshCw className="h-3 w-3" />
-            </button>
-          )}
-          {photos.length > 1 && (
-            <button onClick={shuffleBg}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/65 backdrop-blur-sm transition-colors hover:bg-white/20 active:bg-white/30"
-              title="배경 사진 바꾸기">
-              <Shuffle className="h-3 w-3" />
-            </button>
-          )}
-        </div>
-
-        {tr.zoom !== 1 && (
-          <div className="absolute left-2 top-2 rounded bg-black/40 px-1.5 py-0.5 text-[10px] font-bold text-white/50 backdrop-blur-sm">
-            {tr.zoom.toFixed(1)}×
-          </div>
-        )}
-
-        {photoPts.length > 0 && (
-          <p className="pb-1.5 text-center text-[10px] text-white/22">
-            드래그·핀치 탐색 &nbsp;·&nbsp; 별 탭 = 위치 확인
+        {/* Stats header — label above, bold number below (reference style) */}
+        <div className="px-5 pt-5 pb-1">
+          <p className="mb-3 text-[9px] font-semibold tracking-[0.22em] text-white/38 uppercase">
+            My Constellation
           </p>
-        )}
-      </div>
-
-      {/* ── Info cards ── */}
-      <div className="mt-4 space-y-3 px-5">
-
-        {/* Constellation card */}
-        <div className="mono-card">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="text-[10px] font-semibold tracking-widest text-muted-foreground">CONSTELLATION</p>
-              <p className="mt-0.5 text-[24px] font-bold text-foreground">{getConstellationName(photoPts.length)}</p>
-              {topCity && (
-                <p className="mt-0.5 flex items-center gap-1 text-[12px] text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  주요 탐사지 <span className="font-semibold text-foreground">{topCity}</span>
-                </p>
-              )}
-            </div>
-            <div className="text-right">
-              <p className="text-[42px] font-bold leading-none text-foreground">{photoPts.length}</p>
-              <p className="text-[10px] font-semibold tracking-wider text-muted-foreground">STARS</p>
-            </div>
-          </div>
-
-          <div className="mt-3 grid grid-cols-3 divide-x divide-border rounded-xl border border-border">
+          <div className="flex items-end">
             {[
-              { v: stats.citiesCount,   l: "도시" },
-              { v: stats.countriesCount, l: "국가" },
-              { v: `${stats.distanceKm.toLocaleString()}km`, l: "거리" },
-            ].map(({ v, l }) => (
-              <div key={l} className="flex flex-col items-center py-3">
-                <p className="text-[18px] font-bold text-foreground">{v}</p>
-                <p className="text-[10px] text-muted-foreground">{l}</p>
+              { label: "City",           value: String(stats.citiesCount)                      },
+              { label: "Country",        value: String(stats.countriesCount)                    },
+              { label: "Total Distance", value: `${stats.distanceKm.toLocaleString()}km`        },
+            ].map((s, i) => (
+              <div key={s.label} className="flex items-end">
+                {i > 0 && (
+                  <div className="mx-4 mb-[6px] h-7 w-px self-end bg-white/18" />
+                )}
+                <div>
+                  <p className="text-[9px] uppercase tracking-widest text-white/40">{s.label}</p>
+                  <p className="text-[34px] font-bold leading-none text-white">{s.value}</p>
+                </div>
               </div>
             ))}
           </div>
+          {dateRange && (
+            <p className="mt-1.5 text-[11px] text-white/30">{dateRange}</p>
+          )}
+        </div>
 
+        {/* ── Star map SVG — full width, no rounded box ── */}
+        <div className="relative">
+          <svg
+            ref={svgRef}
+            viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+            className="w-full touch-none select-none"
+            style={{ cursor: dragRef.current ? "grabbing" : "grab" }}
+            onWheel={onWheel}
+            onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+            onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+            onClick={() => { if (!didDrag.current) setActiveIdx(null); }}
+          >
+            {/* Subtle sparkles only — photo provides the texture */}
+            {bgStars.filter(s => s.sp).map((s, i) => (
+              <g key={i} transform={`translate(${s.x},${s.y})`}>
+                <MiniSparkle r={s.r * 1.1} o={s.o * 0.28} variant={s.sv} />
+              </g>
+            ))}
+
+            {/* Lines — inside zoom group so they scale with map */}
+            <g transform={`translate(${tr.panX},${tr.panY}) scale(${tr.zoom})`}>
+              <g key={`lines-${animKey}`}>
+                {svgPts.map((p, i) => {
+                  if (i >= svgPts.length - 1) return null;
+                  const len = lineLens[i];
+                  const delay = STEP_S * 0.5 + i * STEP_S + 0.2;
+                  return (
+                    <line
+                      key={i}
+                      className="line-anim"
+                      x1={p.x} y1={p.y} x2={svgPts[i+1].x} y2={svgPts[i+1].y}
+                      stroke="rgba(255,255,255,0.60)"
+                      strokeWidth={1.5 / tr.zoom}
+                      strokeLinecap="round"
+                      strokeDasharray={len}
+                      style={{ '--dl': len, animationDelay: `${delay}s` } as React.CSSProperties}
+                    />
+                  );
+                })}
+              </g>
+            </g>
+
+            {/* Stars — pixel-stable, outside zoom group */}
+            <g key={`stars-${animKey}`}>
+              {svgPts.map((p, i) => {
+                const sx = p.x * tr.zoom + tr.panX;
+                const sy = p.y * tr.zoom + tr.panY;
+                const r  = BASE_R * weights[i];
+                const isActive = activeIdx === i;
+                const delay = 0.2 + i * STEP_S;
+                return (
+                  <g key={photoPts[i].id} transform={`translate(${sx},${sy})`}>
+                    <g
+                      className="star-anim"
+                      style={{ animationDelay: `${delay}s`, cursor: "pointer" }}
+                      onClick={e => { e.stopPropagation(); if (!didDrag.current) setActiveIdx(isActive ? null : i); }}
+                    >
+                      <StarBurst r={r} active={isActive} variant={photoVariant(photoPts[i].id)} />
+                    </g>
+                    {isActive && (() => {
+                      const label = (photoPts[i].city ?? `${photoPts[i].lat?.toFixed(2)},${photoPts[i].lon?.toFixed(2)}`).toUpperCase();
+                      const fs = 8.5, lw = label.length * fs * 0.66 + 18, lh = 20;
+                      const ly = -(r * 6.5 + lh + 4);
+                      return (
+                        <g>
+                          <rect x={-lw/2} y={ly} width={lw} height={lh} rx={5}
+                            fill="rgba(5,14,35,0.93)" stroke="rgba(255,255,255,0.25)" strokeWidth={0.7} />
+                          <text x={0} y={ly+lh*0.67} textAnchor="middle" fill="white"
+                            fontSize={fs} fontFamily="'Courier New',monospace" fontWeight="bold">{label}</text>
+                        </g>
+                      );
+                    })()}
+                  </g>
+                );
+              })}
+
+              {/* Completion ring */}
+              {photoPts.length > 1 && (() => {
+                const cx = svgPts.reduce((s,p)=>s+p.x*tr.zoom+tr.panX, 0) / svgPts.length;
+                const cy = svgPts.reduce((s,p)=>s+p.y*tr.zoom+tr.panY, 0) / svgPts.length;
+                return (
+                  <circle key={`ring-${animKey}`} cx={cx} cy={cy} r={8} fill="none"
+                    stroke="rgba(255,255,255,0.55)" strokeWidth={1.5}
+                    style={{ animation: `completionRing 1.8s ease-out ${totalDuration}s both` }}
+                  />
+                );
+              })()}
+            </g>
+
+            {/* Empty state */}
+            {svgPts.length === 0 && (
+              <text x={SVG_W/2} y={SVG_H/2} textAnchor="middle"
+                fill="rgba(255,255,255,0.20)" fontSize="11" fontFamily="sans-serif">
+                GPS 사진을 올리면 별자리가 그려져요
+              </text>
+            )}
+          </svg>
+
+          {/* Zoom controls — right */}
+          <div className="absolute bottom-3 right-3 z-20 flex flex-col gap-1">
+            {[
+              { icon: <Plus className="h-3.5 w-3.5" />, fn: btnIn },
+              { icon: <RotateCcw className="h-3 w-3" />, fn: btnReset },
+              { icon: <Minus className="h-3.5 w-3.5" />, fn: btnOut },
+            ].map((b, i) => (
+              <button key={i} onClick={b.fn}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white/60 backdrop-blur-sm transition-colors hover:bg-black/50 active:bg-black/60">
+                {b.icon}
+              </button>
+            ))}
+          </div>
+
+          {/* Left controls: replay + shuffle */}
+          <div className="absolute bottom-3 left-3 z-20 flex flex-col gap-1">
+            {photoPts.length > 0 && (
+              <button onClick={replayAnim}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white/60 backdrop-blur-sm transition-colors hover:bg-black/50 active:bg-black/60"
+                title="애니메이션 다시 보기">
+                <RefreshCw className="h-3 w-3" />
+              </button>
+            )}
+            {photos.length > 1 && (
+              <button onClick={shuffleBg}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white/60 backdrop-blur-sm transition-colors hover:bg-black/50 active:bg-black/60"
+                title="배경 사진 바꾸기">
+                <Shuffle className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+
+          {/* Zoom level badge */}
+          {tr.zoom !== 1 && (
+            <div className="absolute left-3 top-3 z-20 rounded bg-black/40 px-1.5 py-0.5 text-[10px] font-bold text-white/50 backdrop-blur-sm">
+              {tr.zoom.toFixed(1)}×
+            </div>
+          )}
+        </div>
+
+        {/* ── Bottom actions ── */}
+        <div className="mt-1 space-y-3 px-5">
+
+          {/* Download */}
           <button onClick={downloadCard}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border py-3 text-[13px] font-semibold text-foreground transition-colors active:bg-secondary">
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 py-3.5 text-[13px] font-semibold text-white backdrop-blur-sm transition-colors active:bg-white/20">
             <Download className="h-4 w-4" />
             여행 기록 카드 저장
           </button>
-        </div>
 
-        {/* GPS 미등록 섹션 */}
-        {noGpsPts.length > 0 && (
-          <div className="mono-card">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-semibold tracking-widest text-muted-foreground">GPS UNREGISTERED</p>
-                <p className="mt-0.5 text-[14px] font-bold text-foreground">
-                  위치 미등록 <span className="text-primary">{noGpsPts.length}장</span>
-                </p>
-              </div>
-              <MapPin className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {noGpsPts.slice(0,6).map(p => (
-                <button key={p.id}
-                  onClick={() => { setGpsTarget(p); setSearchQuery(""); setSearchResults([]); }}
-                  className="group relative aspect-square overflow-hidden rounded-xl bg-secondary">
-                  <img src={p.url} alt={p.fileName} className="h-full w-full object-cover" />
-                  <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 to-transparent p-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <span className="text-[9px] font-bold text-white">위치 등록</span>
-                  </div>
-                  <div className="absolute right-1 top-1 rounded-full bg-black/50 p-0.5">
-                    <MapPin className="h-3 w-3 text-white/80" />
-                  </div>
-                </button>
-              ))}
-              {noGpsPts.length > 6 && (
-                <div className="flex aspect-square items-center justify-center rounded-xl bg-secondary">
-                  <p className="text-[12px] font-bold text-muted-foreground">+{noGpsPts.length-6}</p>
+          {/* GPS 미등록 섹션 */}
+          {noGpsPts.length > 0 && (
+            <div className="rounded-2xl border border-white/12 bg-black/35 p-4 backdrop-blur-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-semibold tracking-widest text-white/40 uppercase">GPS Unregistered</p>
+                  <p className="mt-0.5 text-[14px] font-bold text-white">
+                    위치 미등록 <span className="text-white/70">{noGpsPts.length}장</span>
+                  </p>
                 </div>
-              )}
+                <MapPin className="h-5 w-5 text-white/40" />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {noGpsPts.slice(0, 6).map(p => (
+                  <button key={p.id}
+                    onClick={() => { setGpsTarget(p); setSearchQuery(""); setSearchResults([]); }}
+                    className="group relative aspect-square overflow-hidden rounded-xl bg-white/10">
+                    <img src={p.url} alt={p.fileName} className="h-full w-full object-cover" />
+                    <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 to-transparent p-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <span className="text-[9px] font-bold text-white">위치 등록</span>
+                    </div>
+                    <div className="absolute right-1 top-1 rounded-full bg-black/50 p-0.5">
+                      <MapPin className="h-3 w-3 text-white/80" />
+                    </div>
+                  </button>
+                ))}
+                {noGpsPts.length > 6 && (
+                  <div className="flex aspect-square items-center justify-center rounded-xl bg-white/10">
+                    <p className="text-[12px] font-bold text-white/50">+{noGpsPts.length - 6}</p>
+                  </div>
+                )}
+              </div>
+              <p className="mt-2 text-center text-[11px] text-white/35">
+                사진을 탭해서 위치를 등록하면 별자리에 추가돼요
+              </p>
             </div>
-            <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              사진을 탭해서 위치를 등록하면 별자리에 추가돼요
-            </p>
-          </div>
-        )}
+          )}
 
-        {/* CTA */}
-        <button onClick={onAddRecord}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-[14px] font-bold text-primary-foreground shadow-button transition-transform active:scale-[0.98]">
-          <Plus className="h-4 w-4" />
-          새로운 탐사 기록하기
-        </button>
+          {/* CTA */}
+          <button onClick={onAddRecord}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3.5 text-[14px] font-bold text-black shadow-button transition-transform active:scale-[0.98]">
+            <Plus className="h-4 w-4" />
+            새로운 탐사 기록하기
+          </button>
+        </div>
       </div>
 
       {/* ── GPS Search Modal ── */}
