@@ -7,6 +7,7 @@ import RecordsScreen, { type RecordsView } from "@/components/screens/RecordsScr
 import CheckinScreen from "@/components/screens/CheckinScreen";
 import PlanetScreen from "@/components/screens/PlanetScreen";
 import CrewScreen from "@/components/screens/CrewScreen";
+import WisdomModal from "@/components/WisdomModal";
 
 interface RecordsInit {
   view?: RecordsView;
@@ -17,6 +18,7 @@ const Index = () => {
   const [hasStarted, setHasStarted] = useState(false);
   const [tab, setTab] = useState<TabKey>("dashboard");
   const [recordsInit, setRecordsInit] = useState<RecordsInit | undefined>();
+  const [wisdomOpen, setWisdomOpen] = useState(false);
 
   const openRecords = (opts?: RecordsInit) => {
     setRecordsInit(opts);
@@ -41,7 +43,7 @@ const Index = () => {
   return (
     <main className="min-h-dvh bg-surface-2">
       <div className="toss-frame shadow-card">
-        <AppHeader subtitle="Planet Exploration" />
+        <AppHeader subtitle="Planet Exploration" onStarClick={() => setWisdomOpen(true)} />
         {tab === "dashboard" && (
           <DashboardScreen onStart={() => setTab("checkin")} onOpenRecords={openRecords} />
         )}
@@ -50,6 +52,7 @@ const Index = () => {
         {tab === "planet" && <PlanetScreen onAddRecord={() => setTab("checkin")} />}
         {tab === "crew" && <CrewScreen />}
         <BottomNav active={tab} onChange={setTab} />
+        <WisdomModal open={wisdomOpen} onClose={() => setWisdomOpen(false)} />
       </div>
     </main>
   );
