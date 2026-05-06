@@ -436,10 +436,10 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
 
   /* ── render ──────────────────────────────────────────────────── */
   return (
-    <div className="animate-fade-up relative min-h-[calc(100dvh-3.5rem)] overflow-hidden pb-24">
+    <div className="animate-fade-up relative overflow-hidden">
 
-      {/* ── Capture zone (탭/버튼 제외한 시각 영역) ── */}
-      <div ref={captureRef} className="relative">
+      {/* ── Capture zone — full-height so bg photo covers all the way to bottom ── */}
+      <div ref={captureRef} className="relative min-h-dvh">
 
         {/* Full-bleed background */}
         {bgPhoto ? (
@@ -457,7 +457,7 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
         <div className="pointer-events-none absolute inset-0 bg-black/20" />
 
       {/* ── Content ── */}
-      <div className="relative z-10 flex flex-col">
+      <div className="relative z-10 flex flex-col pb-28">
 
         {/* ── TOP: MY CONSTELLATION + 이름 (가운데 정렬) + ⋮ 메뉴 ── */}
         <div className="flex flex-col items-center pt-6 pb-0 text-center">
@@ -482,8 +482,8 @@ const PlanetScreen = ({ onAddRecord }: { onAddRecord: () => void }) => {
             {/* 드롭다운 메뉴 */}
             {menuOpen && (
               <>
-                <div className="fixed inset-0 z-[180]" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-8 z-[190] min-w-[140px] overflow-hidden rounded-xl border border-white/15 bg-black/70 shadow-lg backdrop-blur-md">
+                <div data-capture-ignore className="fixed inset-0 z-[180]" onClick={() => setMenuOpen(false)} />
+                <div data-capture-ignore className="absolute right-0 top-8 z-[190] min-w-[140px] overflow-hidden rounded-xl border border-white/15 bg-black/70 shadow-lg backdrop-blur-md">
                   <button
                     onClick={() => { setMenuOpen(false); captureScreen(); }}
                     className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[13px] text-white transition-colors hover:bg-white/10"

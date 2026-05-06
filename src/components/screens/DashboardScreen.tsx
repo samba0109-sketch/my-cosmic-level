@@ -104,7 +104,7 @@ const DashboardScreen = ({ onStart, onOpenRecords }: Props) => {
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-[11px] font-semibold tracking-widest text-muted-foreground">EXPLORATION SCORE</span>
             <span className="mt-1 text-[44px] font-bold leading-none tracking-tight text-foreground">
-              {stats.score.toLocaleString()}
+              {stats.coverage.toLocaleString()}
               <span className="ml-1 text-[20px] text-muted-foreground">점</span>
             </span>
             <span className="mt-1 text-[12px] text-muted-foreground">나의 탐사 점수</span>
