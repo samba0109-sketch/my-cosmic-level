@@ -10,7 +10,7 @@ interface Props {
 
 const TABS: { key: TabKey; label: string; Icon: ComponentType<{ className?: string }> }[] = [
   { key: "dashboard", label: "대시보드", Icon: Globe2 },
-  { key: "records", label: "기록", Icon: Compass },
+  { key: "records", label: "별 도감", Icon: Compass },
   { key: "checkin", label: "별자리 만들기", Icon: Sparkles },
   { key: "planet", label: "행성", Icon: BookOpen },
 ];
