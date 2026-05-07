@@ -46,7 +46,12 @@ const Index = () => {
           <DashboardScreen onStart={() => setTab("checkin")} onOpenRecords={openRecords} />
         )}
         {tab === "records" && <RecordsScreen initialView={recordsInit?.view} initialCity={recordsInit?.city} onAddRecord={() => setTab("checkin")} />}
-        {tab === "checkin" && <CheckinScreen onOpenWisdom={() => setWisdomOpen(true)} />}
+        {tab === "checkin" && (
+          <CheckinScreen
+            onOpenWisdom={() => setWisdomOpen(true)}
+            onOpenCollection={() => openRecords({ view: "grid" })}
+          />
+        )}
 <BottomNav active={tab} onChange={setTab} />
         <WisdomModal open={wisdomOpen} onClose={() => setWisdomOpen(false)} />
       </div>
