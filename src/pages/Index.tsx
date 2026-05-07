@@ -5,7 +5,6 @@ import IntroScreen from "@/components/screens/IntroScreen";
 import DashboardScreen from "@/components/screens/DashboardScreen";
 import RecordsScreen, { type RecordsView } from "@/components/screens/RecordsScreen";
 import CheckinScreen from "@/components/screens/CheckinScreen";
-import PlanetScreen from "@/components/screens/PlanetScreen";
 import WisdomModal from "@/components/WisdomModal";
 
 interface RecordsInit {
@@ -48,8 +47,7 @@ const Index = () => {
         )}
         {tab === "records" && <RecordsScreen initialView={recordsInit?.view} initialCity={recordsInit?.city} onAddRecord={() => setTab("checkin")} />}
         {tab === "checkin" && <CheckinScreen onOpenWisdom={() => setWisdomOpen(true)} />}
-        {tab === "planet" && <PlanetScreen onAddRecord={() => setTab("checkin")} />}
-        <BottomNav active={tab} onChange={setTab} />
+<BottomNav active={tab} onChange={setTab} />
         <WisdomModal open={wisdomOpen} onClose={() => setWisdomOpen(false)} />
       </div>
     </main>

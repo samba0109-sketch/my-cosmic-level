@@ -1,7 +1,7 @@
-import { Compass, Globe2, Sparkles, BookOpen } from "lucide-react";
+import { Compass, Globe2, Sparkles } from "lucide-react";
 import type { ComponentType } from "react";
 
-export type TabKey = "dashboard" | "records" | "checkin" | "planet";
+export type TabKey = "dashboard" | "records" | "checkin";
 
 interface Props {
   active: TabKey;
@@ -12,7 +12,6 @@ const TABS: { key: TabKey; label: string; Icon: ComponentType<{ className?: stri
   { key: "dashboard", label: "대시보드", Icon: Globe2 },
   { key: "records", label: "별 도감", Icon: Compass },
   { key: "checkin", label: "별자리 만들기", Icon: Sparkles },
-  { key: "planet", label: "행성", Icon: BookOpen },
 ];
 
 const BottomNav = ({ active, onChange }: Props) => (
