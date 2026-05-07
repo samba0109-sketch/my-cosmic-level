@@ -6,19 +6,19 @@ interface Props {
 
 const steps = [
   {
-    emoji: "✈️",
-    title: "지구에서의 여정 기록",
-    desc: "지구에서의 사진으로 당신의 우주 여권을 만들어보세요",
+    emoji: "📸",
+    title: "사진으로 별 모으기",
+    desc: "오늘의 사진을 업로드하고 나만의 별자리를 그려보세요.",
   },
   {
-    emoji: "🪐",
-    title: "나의 행성 클래스 확인",
-    desc: "5가지 탐사 행성 중 당신에게 가장 어울리는 행성을 찾아드려요",
+    emoji: "✨",
+    title: "나만의 별자리 운세",
+    desc: "모은 사진으로 그려진 별자리가 오늘의 운세를 알려드려요.",
   },
   {
-    emoji: "👥",
-    title: "함께 떠날 동료 모집",
-    desc: "같은 행성으로 향하는 동료를 모아보세요",
+    emoji: "🌟",
+    title: "행운의 별 조각 도감 완성",
+    desc: "모은 별 조각을 도감에 기록하고 공유해보세요.",
   },
 ];
 
@@ -53,9 +53,9 @@ const IntroScreen = ({ onStart }: Props) => (
         탐사자님
       </h1>
       <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-zinc-400">
-        잠시 후, 다음 행성을 향한 보딩이 시작됩니다.
+        잠시 후, 당신의 별자리 탐사가 시작됩니다.
         <br />
-        지구에서 모은 발자국이 당신의 행선지를 결정합니다.
+        당신이 찍은 사진이 오늘의 별자리를 결정합니다.
       </p>
 
       <div className="my-8 w-full max-w-[340px] -rotate-2">
