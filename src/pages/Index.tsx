@@ -48,7 +48,7 @@ const Index = () => {
           <DashboardScreen onStart={() => setTab("checkin")} onOpenRecords={openRecords} />
         )}
         {tab === "records" && <RecordsScreen initialView={recordsInit?.view} initialCity={recordsInit?.city} />}
-        {tab === "checkin" && <CheckinScreen />}
+        {tab === "checkin" && <CheckinScreen onOpenWisdom={() => setWisdomOpen(true)} />}
         {tab === "planet" && <PlanetScreen onAddRecord={() => setTab("checkin")} />}
         {tab === "crew" && <CrewScreen />}
         <BottomNav active={tab} onChange={setTab} />

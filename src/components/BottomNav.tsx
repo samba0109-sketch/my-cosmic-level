@@ -1,4 +1,4 @@
-import { Compass, Globe2, Plane, BookOpen, Users } from "lucide-react";
+import { Compass, Globe2, Sparkles, BookOpen, Users } from "lucide-react";
 import type { ComponentType } from "react";
 
 export type TabKey = "dashboard" | "records" | "checkin" | "planet" | "crew";
@@ -11,7 +11,7 @@ interface Props {
 const TABS: { key: TabKey; label: string; Icon: ComponentType<{ className?: string }> }[] = [
   { key: "dashboard", label: "대시보드", Icon: Globe2 },
   { key: "records", label: "기록", Icon: Compass },
-  { key: "checkin", label: "체크인", Icon: Plane },
+  { key: "checkin", label: "별자리 만들기", Icon: Sparkles },
   { key: "planet", label: "행성", Icon: BookOpen },
   { key: "crew", label: "행성단", Icon: Users },
 ];
